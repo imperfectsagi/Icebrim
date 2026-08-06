@@ -68,7 +68,7 @@ ENVIRONMENT = "production"
 # prints, or from the Cloudflare dashboard > Workers & Pages > icebrim-api).
 # If this is wrong, uploaded images will show as broken everywhere
 # (products, blog, gallery, logo) even though the upload itself succeeds.
-WORKER_PUBLIC_URL = "https://icebrim-api.YOUR-SUBDOMAIN.workers.dev"
+WORKER_PUBLIC_URL = "https://icebrim-api.brand-launch-studio.workers.dev"
 
 # ---------------------------------------------------------------------------
 # Secrets (set via `npx wrangler secret put <NAME>`, never committed)

@@ -1,0 +1,85 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "icebrim-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ---------------------------------------------------------------------------
+# D1 Database
+# ---------------------------------------------------------------------------
+# Create with: npx wrangler d1 create icebrim-db
+# Then paste the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "icebrim-db"
+database_id = "31d872cd-6a63-495e-9d51-bd93c5e0eda5"
+migrations_dir = "db/migrations"
+
+# ---------------------------------------------------------------------------
+# Images (server-side resize/compress/format-convert on upload)
+# ---------------------------------------------------------------------------
+[images]
+binding = "IMAGES"
+
+# ---------------------------------------------------------------------------
+# R2 Bucket (image storage)
+# ---------------------------------------------------------------------------
+# Create with: npx wrangler r2 bucket create icebrim-media
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "icebrim-media"
+
+# ---------------------------------------------------------------------------
+# Rate limiting (login attempts, contact form, review submissions)
+# ---------------------------------------------------------------------------
+[[unsafe.bindings]]
+name = "LOGIN_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+
+[[unsafe.bindings]]
+name = "FORM_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 10, period = 60 }
+
+# ---------------------------------------------------------------------------
+# Environment variables (non-secret)
+# ---------------------------------------------------------------------------
+# PUBLIC_SITE_URL: comma-separated list of every origin the frontend is
+# served from. This MUST include your Cloudflare Pages *.pages.dev domain
+# AND any custom domain you connect (with and without "www"), or requests
+# from that origin -- including admin login -- will be blocked by CORS.
+# Example once a custom domain is connected:
+#   PUBLIC_SITE_URL = "https://icebrim.pages.dev,https://icebrim.com,https://www.icebrim.com"
+[vars]
+PUBLIC_SITE_URL = "https://icebrim.pages.dev"
+ENVIRONMENT = "production"
+
+# ---------------------------------------------------------------------------
+# WORKER_PUBLIC_URL: this Worker's own public base URL (its workers.dev
+# URL, or a custom domain/route if you've mapped one). Used to build
+# absolute media URLs (uploaded images) so they always point at wherever
+# this Worker actually runs, instead of a hardcoded domain.
+#
+# IMPORTANT: replace the value below with your actual deployed Worker URL
+# (find it by running `npx wrangler deploy` once and copying the URL it
+# prints, or from the Cloudflare dashboard > Workers & Pages > icebrim-api).
+# If this is wrong, uploaded images will show as broken everywhere
+# (products, blog, gallery, logo) even though the upload itself succeeds.
+WORKER_PUBLIC_URL = "https://icebrim-api.YOUR-SUBDOMAIN.workers.dev"
+
+# ---------------------------------------------------------------------------
+# Secrets (set via `npx wrangler secret put <NAME>`, never committed)
+# ---------------------------------------------------------------------------
+# JWT_ACCESS_SECRET       - signs short-lived access tokens
+# JWT_REFRESH_SECRET      - signs longer-lived refresh tokens (different key)
+# TURNSTILE_SECRET_KEY    - Cloudflare Turnstile CAPTCHA verification
+# ADMIN_SETUP_TOKEN       - one-time token to bootstrap the first admin user
+
+# ---------------------------------------------------------------------------
+# Local development port
+# ---------------------------------------------------------------------------
+[dev]
+port = 8787

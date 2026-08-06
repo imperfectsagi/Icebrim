@@ -89,12 +89,6 @@ export const homeContent: HomePageContent = {
       description:
         'Rated for a 5-year functional lifespan with proper flat, dry storage — just wipe clean and refreeze.',
     },
-    {
-      id: 'ready-anytime',
-      title: 'Ready whenever you need it',
-      description:
-        'Keep it flat in the freezer and enjoy drug-free cooling relief in minutes whenever migraines or hot flushes strike.',
-    },
   ],
 },
   featuredProducts: {

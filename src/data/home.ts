@@ -55,42 +55,48 @@ export const homeContent: HomePageContent = {
     ],
   },
   whyChooseUs: {
-    visible: true,
-    eyebrow: 'Why Icebrim',
-    heading: 'Built to fix what other cooling caps get wrong',
-    features: [
-      {
-        id: 'soft-cold',
-        title: 'Stays soft, stays cold',
-        description:
-          'Our gel core is formulated to remain flexible and comfortable straight from the freezer — no painful cold shock, no early warm-up.',
-      },
-      {
-        id: 'fit',
-        title: 'Shaped to actually fit',
-        description:
-          'A contoured nose bridge and 360° coverage mean it stays in place, whether you\u2019re lying down or moving around the house.',
-      },
-      {
-        id: 'light-blocking',
-        title: 'Full light-blocking',
-        description:
-          'Dense, light-absorbing fabric across the eyes helps with sensitivity to brightness during a migraine.',
-      },
-      {
-        id: 'warm-compress',
-        title: 'Doubles as a warm compress',
-        description:
-          'Heat it gently for 20–60 seconds to ease tight muscles in the head, temples, or neck.',
-      },
-      {
-        id: 'durable',
-        title: 'Built to last years, not months',
-        description:
-          'Rated for a 5-year functional lifespan with proper flat, dry storage — just wipe clean and refreeze.',
-      },
-    ],
-  },
+  visible: true,
+  eyebrow: 'Why Icebrim',
+  heading: 'Built to fix what other cooling caps get wrong',
+  features: [
+    {
+      id: 'soft-cold',
+      title: 'Stays soft, stays cold',
+      description:
+        'Our gel core is formulated to remain flexible and comfortable straight from the freezer — no painful cold shock, no early warm-up.',
+    },
+    {
+      id: 'fit',
+      title: 'Shaped to actually fit',
+      description:
+        'A contoured nose bridge and 360° coverage mean it stays in place, whether you’re lying down or moving around the house.',
+    },
+    {
+      id: 'light-blocking',
+      title: 'Full light-blocking',
+      description:
+        'Dense, light-absorbing fabric across the eyes helps with sensitivity to brightness during a migraine.',
+    },
+    {
+      id: 'warm-compress',
+      title: 'Doubles as a warm compress',
+      description:
+        'Heat it gently for 20–60 seconds to ease tight muscles in the head, temples, or neck.',
+    },
+    {
+      id: 'durable',
+      title: 'Built to last years, not months',
+      description:
+        'Rated for a 5-year functional lifespan with proper flat, dry storage — just wipe clean and refreeze.',
+    },
+    {
+      id: 'ready-anytime',
+      title: 'Ready whenever you need it',
+      description:
+        'Keep it flat in the freezer and enjoy drug-free cooling relief in minutes whenever migraines or hot flushes strike.',
+    },
+  ],
+},
   featuredProducts: {
     visible: true,
     eyebrow: 'Shop',

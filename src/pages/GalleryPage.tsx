@@ -33,7 +33,20 @@ export default function GalleryPage() {
             <div className="columns-2 md:columns-3 gap-4 [&>*]:mb-4">
               {(images ?? []).map((img) => (
                 <figure key={img.id} className="rounded-[var(--radius-card)] overflow-hidden break-inside-avoid bg-[var(--color-surface)]">
-                  <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-auto object-cover" />
+                  {img.mediaType === 'video' && img.videoSrc ? (
+                    <video
+                      src={img.videoSrc}
+                      poster={img.src || undefined}
+                      className="w-full h-auto object-cover"
+                      controls
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-auto object-cover" />
+                  )}
                   {img.caption && (
                     <figcaption className="p-3 text-sm text-[var(--color-ink-soft)]">
                       {img.caption}

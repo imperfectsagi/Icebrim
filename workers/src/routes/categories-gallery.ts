@@ -18,6 +18,8 @@ interface GalleryImageRow {
   category: string | null;
   sort_order: number;
   created_at: string;
+  media_type: string | null;
+  video_src: string | null;
 }
 
 function serializeGalleryImage(r: GalleryImageRow) {
@@ -28,6 +30,8 @@ function serializeGalleryImage(r: GalleryImageRow) {
     caption: r.caption ?? undefined,
     category: r.category ?? undefined,
     sortOrder: r.sort_order,
+    mediaType: (r.media_type ?? 'image') as 'image' | 'video' | 'gif',
+    videoSrc: r.video_src ?? undefined,
   };
 }
 
@@ -66,17 +70,9 @@ adminCategories.delete('/:id', async (c) => {
 export const gallery = new Hono<{ Bindings: Env }>();
 
 gallery.get('/', async (c) => {
-  const { results } = await c.env.DB.prepare('SELECT * FROM gallery_images ORDER BY sort_order ASC').all();
+  const { results } = await c.env.DB.prepare('SELECT * FROM gallery_images ORDER BY sort_order ASC').all<GalleryImageRow>();
   c.header('Cache-Control', 'public, max-age=300');
-  return c.json(
-    results.map((r) => ({
-      id: r.id,
-      src: r.src,
-      alt: r.alt,
-      caption: r.caption ?? undefined,
-      category: r.category ?? undefined,
-    })),
-  );
+  return c.json(results.map(serializeGalleryImage));
 });
 
 export const adminGallery = new Hono<{ Bindings: Env; Variables: AuthedVariables }>();
@@ -107,9 +103,18 @@ adminGallery.post('/', async (c) => {
 
   const id = `gal_${crypto.randomUUID()}`;
   await c.env.DB.prepare(
-    'INSERT INTO gallery_images (id, src, alt, caption, category, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO gallery_images (id, src, alt, caption, category, sort_order, media_type, video_src) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
   )
-    .bind(id, parsed.data.src, parsed.data.alt, parsed.data.caption ?? null, parsed.data.category ?? null, sortOrder)
+    .bind(
+      id,
+      parsed.data.src,
+      parsed.data.alt,
+      parsed.data.caption ?? null,
+      parsed.data.category ?? null,
+      sortOrder,
+      parsed.data.mediaType ?? 'image',
+      parsed.data.videoSrc ?? null,
+    )
     .run();
 
   await logAuditEvent(c.env.DB, {
@@ -143,10 +148,14 @@ adminGallery.patch('/:id', async (c) => {
     alt: parsed.data.alt ?? existing.alt,
     caption: parsed.data.caption === undefined ? existing.caption : parsed.data.caption,
     category: parsed.data.category === undefined ? existing.category : parsed.data.category,
+    mediaType: parsed.data.mediaType ?? existing.media_type ?? 'image',
+    videoSrc: parsed.data.videoSrc === undefined ? existing.video_src : parsed.data.videoSrc,
   };
 
-  await c.env.DB.prepare('UPDATE gallery_images SET src = ?, alt = ?, caption = ?, category = ? WHERE id = ?')
-    .bind(next.src, next.alt, next.caption, next.category, id)
+  await c.env.DB.prepare(
+    'UPDATE gallery_images SET src = ?, alt = ?, caption = ?, category = ?, media_type = ?, video_src = ? WHERE id = ?',
+  )
+    .bind(next.src, next.alt, next.caption, next.category, next.mediaType, next.videoSrc, id)
     .run();
 
   await logAuditEvent(c.env.DB, {

@@ -63,7 +63,12 @@ export const blogWriteSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
   excerpt: z.string().min(1).max(500),
   contentHtml: z.string().min(1).max(100_000),
-  featuredImage: z.object({ src: z.string().min(1).max(500), alt: z.string().min(1).max(200) }),
+  featuredImage: z.object({ src: z.string().max(500), alt: z.string().min(1).max(200) }),
+  // Optional: the featured media can be a video/gif instead of a static
+  // image. featuredMediaType defaults to 'image' for backward
+  // compatibility with posts created before this field existed.
+  featuredMediaType: z.enum(['image', 'video', 'gif']).optional(),
+  featuredVideoSrc: z.string().max(500).optional(),
   category: z.string().min(1).max(80),
   tags: z.array(z.string().min(1).max(40)).max(20),
   author: z.string().min(1).max(100),
@@ -79,6 +84,9 @@ export const reviewSubmitSchema = z.object({
   rating: z.number().int().min(1).max(5),
   title: z.string().min(3).max(120),
   body: z.string().min(10).max(2000),
+  // Optional customer-attached photo or short video review.
+  mediaType: z.enum(['none', 'image', 'video']).optional(),
+  mediaSrc: z.string().max(500).optional(),
   // Honeypot: a hidden field real visitors never see or fill. We
   // deliberately do NOT reject a non-empty value here at the schema
   // level -- doing so would return a 400 that tells an automated
@@ -104,6 +112,8 @@ export const reviewEditSchema = z.object({
   rating: z.number().int().min(1).max(5).optional(),
   title: z.string().min(3).max(120).optional(),
   body: z.string().min(10).max(2000).optional(),
+  mediaType: z.enum(['none', 'image', 'video']).optional(),
+  mediaSrc: z.string().max(500).nullable().optional(),
 });
 
 export const contactMessageSchema = z.object({
@@ -126,19 +136,29 @@ export const categoryWriteSchema = z.object({
 });
 
 export const galleryImageWriteSchema = z.object({
-  src: z.string().min(1).max(500),
+  src: z.string().max(500),
   alt: z.string().min(1).max(200),
   caption: z.string().max(300).optional(),
   category: z.string().max(80).optional(),
+  // Optional: this entry can be a video or animated GIF instead of a
+  // static image. mediaType defaults to 'image' server-side (see the
+  // route handler) for entries created before this field existed.
+  mediaType: z.enum(['image', 'video', 'gif']).optional(),
+  videoSrc: z.string().max(500).optional(),
+}).refine((v) => (v.mediaType === 'video' ? (v.videoSrc?.length ?? 0) > 0 : v.src.length > 0), {
+  message: 'An image, GIF, or video is required',
+  path: ['src'],
 });
 
 // Same fields as create, but every field is optional so PATCH can update
 // just one field (e.g. only the caption) without resending everything.
 export const galleryImagePatchSchema = z.object({
-  src: z.string().min(1).max(500).optional(),
+  src: z.string().max(500).optional(),
   alt: z.string().min(1).max(200).optional(),
   caption: z.string().max(300).nullable().optional(),
   category: z.string().max(80).nullable().optional(),
+  mediaType: z.enum(['image', 'video', 'gif']).optional(),
+  videoSrc: z.string().max(500).nullable().optional(),
 });
 
 export const galleryReorderSchema = z.object({

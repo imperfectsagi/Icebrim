@@ -6,18 +6,36 @@ import type { HeroBannerContent } from '@/types/cms';
 export function HeroBanner({ content }: { content: HeroBannerContent }) {
   if (!content.visible) return null;
 
+  const isVideo = content.mediaType === 'video' && content.videoSrc;
+
   return (
     <section className="relative isolate overflow-hidden bg-[var(--color-surface)]">
-      {/* Full-bleed banner image */}
+      {/* Full-bleed banner media: image (default) or a short looping video/gif */}
       <div className="absolute inset-0">
-        <img
-          src={content.image.src}
-          alt=""
-          role="presentation"
-          className="h-full w-full object-cover"
-          loading="eager"
-          fetchPriority="high"
-        />
+        {isVideo ? (
+          <video
+            src={content.videoSrc}
+            poster={content.image.src || undefined}
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            // Banners are decorative background media, not primary content --
+            // preload just the metadata rather than the whole file so it
+            // doesn't compete with the page's actual first-load bandwidth.
+            preload="metadata"
+          />
+        ) : (
+          <img
+            src={content.image.src}
+            alt=""
+            role="presentation"
+            className="h-full w-full object-cover"
+            loading="eager"
+            fetchPriority="high"
+          />
+        )}
         {/* Frost gradient: signature element — mirrors the product's own frozen-to-clear function */}
         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white/10" />
         <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />

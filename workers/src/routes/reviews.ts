@@ -17,6 +17,8 @@ interface ReviewRow {
   body: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
+  media_type: string | null;
+  media_src: string | null;
 }
 
 function serializeReview(row: ReviewRow) {
@@ -30,6 +32,8 @@ function serializeReview(row: ReviewRow) {
     body: row.body,
     status: row.status,
     createdAt: row.created_at,
+    mediaType: (row.media_type ?? 'none') as 'none' | 'image' | 'video',
+    mediaSrc: row.media_src ?? undefined,
   };
 }
 
@@ -72,10 +76,21 @@ reviews.post('/', async (c) => {
 
   const id = `rev_${crypto.randomUUID()}`;
   await c.env.DB.prepare(
-    `INSERT INTO reviews (id, product_slug, author_name, location, rating, title, body, status, ip_address)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+    `INSERT INTO reviews (id, product_slug, author_name, location, rating, title, body, status, ip_address, media_type, media_src)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
   )
-    .bind(id, input.productSlug, input.authorName, input.location ?? null, input.rating, input.title, input.body, ip)
+    .bind(
+      id,
+      input.productSlug,
+      input.authorName,
+      input.location ?? null,
+      input.rating,
+      input.title,
+      input.body,
+      ip,
+      input.mediaType ?? 'none',
+      input.mediaSrc ?? null,
+    )
     .run();
 
   return c.json({ success: true, id }, 201);
@@ -143,12 +158,14 @@ adminReviews.put('/:id', async (c) => {
     rating: parsed.data.rating ?? existing.rating,
     title: parsed.data.title ?? existing.title,
     body: parsed.data.body ?? existing.body,
+    mediaType: parsed.data.mediaType ?? existing.media_type ?? 'none',
+    mediaSrc: parsed.data.mediaSrc === undefined ? existing.media_src : parsed.data.mediaSrc,
   };
 
   await c.env.DB.prepare(
-    'UPDATE reviews SET author_name = ?, location = ?, rating = ?, title = ?, body = ? WHERE id = ?',
+    'UPDATE reviews SET author_name = ?, location = ?, rating = ?, title = ?, body = ?, media_type = ?, media_src = ? WHERE id = ?',
   )
-    .bind(next.authorName, next.location, next.rating, next.title, next.body, id)
+    .bind(next.authorName, next.location, next.rating, next.title, next.body, next.mediaType, next.mediaSrc, id)
     .run();
 
   // The star rating may have changed -- recompute the product's aggregate

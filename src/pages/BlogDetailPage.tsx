@@ -50,16 +50,28 @@ export default function BlogDetailPage() {
           </p>
 
           <div className="rounded-[var(--radius-card)] overflow-hidden aspect-[16/9] mb-10">
-            <img
-              src={post.featuredImage.src}
-              alt={post.featuredImage.alt}
-              // Featured image is the largest above-the-fold element on
-              // this page (likely the LCP element) -- load it eagerly,
-              // don't lazy-load it.
-              loading="eager"
-              fetchPriority="high"
-              className="h-full w-full object-cover"
-            />
+            {post.featuredMediaType === 'video' && post.featuredVideoSrc ? (
+              <video
+                src={post.featuredVideoSrc}
+                poster={post.featuredImage.src || undefined}
+                className="h-full w-full object-cover"
+                controls
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <img
+                src={post.featuredImage.src}
+                alt={post.featuredImage.alt}
+                // Featured image is the largest above-the-fold element on
+                // this page (likely the LCP element) -- load it eagerly,
+                // don't lazy-load it.
+                loading="eager"
+                fetchPriority="high"
+                className="h-full w-full object-cover"
+              />
+            )}
           </div>
 
           <RichText html={post.contentHtml} className="prose-content" />

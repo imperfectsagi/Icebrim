@@ -35,6 +35,8 @@ export interface GalleryImageInput {
   alt: string;
   caption?: string;
   category?: string;
+  mediaType?: 'image' | 'video' | 'gif';
+  videoSrc?: string;
 }
 
 export function useCreateGalleryImage() {
@@ -62,6 +64,8 @@ export interface GalleryImagePatchInput {
   alt?: string;
   caption?: string | null;
   category?: string | null;
+  mediaType?: 'image' | 'video' | 'gif';
+  videoSrc?: string | null;
 }
 
 export function useEditGalleryImage() {
@@ -79,6 +83,7 @@ export function useEditGalleryImage() {
                       ...edits,
                       caption: edits.caption === null ? undefined : (edits.caption ?? img.caption),
                       category: edits.category === null ? undefined : (edits.category ?? img.category),
+                      videoSrc: edits.videoSrc === null ? undefined : (edits.videoSrc ?? img.videoSrc),
                     }
                   : img,
               );

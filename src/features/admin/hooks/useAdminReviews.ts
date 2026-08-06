@@ -37,6 +37,8 @@ export interface ReviewEditInput {
   rating?: 1 | 2 | 3 | 4 | 5;
   title?: string;
   body?: string;
+  mediaType?: 'none' | 'image' | 'video';
+  mediaSrc?: string | null;
 }
 
 export function useEditReview() {
@@ -53,6 +55,7 @@ export function useEditReview() {
                       ...r,
                       ...edits,
                       location: edits.location === null ? undefined : (edits.location ?? r.location),
+                      mediaSrc: edits.mediaSrc === null ? undefined : (edits.mediaSrc ?? r.mediaSrc),
                     }
                   : r,
               );

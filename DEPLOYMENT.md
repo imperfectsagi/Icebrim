@@ -22,6 +22,7 @@ All three now come from environment variables instead (see below), and the media
 Also fixed in this pass, unrelated to domains:
 - Gallery images previously could only be **created or deleted** — editing (swapping the image, changing alt text/caption/category) and reordering didn't exist. Both now exist, with a new **Gallery** page in the admin sidebar.
 - Reviews previously could only be approved/rejected/deleted — there was no way to **edit** a review's star rating, title, or body. That's now available from an "Edit" button on the Reviews page.
+- **Banner, Gallery, Blog featured media, and Reviews now support video and GIF, not just static images** — see section 6 for size limits and compression guidance, since video isn't auto-compressed the way images are.
 - Every image on the site now has an explicit lazy-loading setting: below-the-fold images (product cards, blog cards, thumbnails, footer) load lazily; the one hero/featured image on each page loads eagerly so the page doesn't feel slow to appear.
 - Sign-out now shows a "Signing out…" state and navigates immediately instead of only relying on a state change to trigger the redirect.
 
@@ -52,6 +53,8 @@ npx wrangler r2 bucket create icebrim-media
 ```bash
 npx wrangler d1 migrations apply icebrim-db --remote
 ```
+
+This applies both `0001_initial_schema.sql` (the original schema) and `0002_media_video_support.sql` (adds video/GIF support to the banner, blog, gallery, and reviews — see section 8 below). Wrangler tracks which migrations have already run, so it's always safe to re-run this command after pulling new changes — it only applies what's new.
 
 (Use `--local` instead when testing with `wrangler dev` locally.)
 
@@ -186,7 +189,40 @@ After deploying both sides, check in this order:
 
 ---
 
-## 6. Quick reference — every environment variable in this project
+## 6. Banner, blog, gallery, and review video/GIF support
+
+The Banner, Gallery, and each Blog post's featured media can now be an **image, an animated GIF, or a short video (MP4/WEBM)** instead of only a static image. Reviews can have an admin-attached photo or video too, added from the review's Edit button.
+
+### How to use it
+- **Banner:** Admin → Banner → choose Image / Video / GIF, then upload. For video, you can also set an optional poster image (shown while the video loads).
+- **Blog:** Admin → Blogs → edit a post → "Featured media" → choose Image / Video / GIF.
+- **Gallery:** Admin → Gallery → Add Media (or edit an existing entry) → choose Image / Video / GIF.
+- **Reviews:** Admin → Reviews → Edit on any review → "Attached photo or video" → choose None / Photo / Video.
+
+### Size limits — and why there's no automatic video compression
+Images are automatically compressed and resized on upload (down to max 2400px, re-encoded to WEBP), same as before. **Video and GIF are not compressed** — Cloudflare's Images binding (the tool this Worker uses to shrink images) can only process actual raster images; it cannot decode or transcode video. Because there's no server-side lever to shrink a video after upload, the upload size limit is what actually keeps banner/gallery video files small:
+
+| Type | Limit | Compressed on upload? |
+|---|---|---|
+| Image (PNG/JPG/WEBP) | 8MB | Yes — auto-resized & re-encoded |
+| GIF | 8MB | No — stored as-is |
+| Video (MP4/WEBM) | 15MB | No — stored as-is |
+
+**If your banner/gallery video is larger than 15MB, compress it before uploading.** For a banner-style short looping clip, aim for well under the limit — a few seconds at a moderate bitrate is normally only 1-4MB. Free tools that do this well:
+- **HandBrake** (desktop, Windows/Mac/Linux) — use the "Web" preset, target 720p or 1080p, no audio track needed since banner video plays muted.
+- **Squoosh / CloudConvert / FreeConvert** (browser-based, no install) — search "compress mp4 online."
+- Command line, if you have `ffmpeg`: `ffmpeg -i input.mp4 -vf scale=1280:-2 -an -c:v libx264 -crf 28 output.mp4` (`-an` strips audio since banner video is always muted anyway; `-crf 28` is a reasonable size/quality tradeoff — lower number = larger file, higher quality).
+
+### Aspect ratio / sizing guidance
+- **Banner:** the banner section is full-width and roughly 3:2 to 16:9 depending on screen size. A landscape video/image around **1920×1080 (16:9)** works well and won't look stretched on ultra-wide screens or cropped awkwardly on mobile, since it's displayed with `object-cover`.
+- **Gallery:** tiles are square-cropped in the admin grid but the public Gallery page uses a masonry layout that preserves each item's natural aspect ratio — any ratio works, but keep video clips short (a few seconds) since they show with playback controls, not autoplay.
+- **Blog featured media:** displayed at a fixed **16:9** crop on both the post page and card thumbnails, so compose your source image/video/poster with the subject centered.
+
+If your current banner or gallery images look too large/heavy on the live site even after this update, it's almost always because the *source file* uploaded was already large before compression, or because a video/GIF was used where a compressed image would do — re-uploading a properly-sized source (per the guidance above) fixes it; there's no separate "reduce size" setting to toggle.
+
+---
+
+## 7. Quick reference — every environment variable in this project
 
 ### Worker (`workers/wrangler.toml` — `[vars]`, not secret)
 | Variable | Purpose | Example |
@@ -209,7 +245,7 @@ After deploying both sides, check in this order:
 
 ---
 
-## 7. If something still doesn't work
+## 8. If something still doesn't work
 
 - **Login still fails on the live domain:** almost always `PUBLIC_SITE_URL` (step 3) not listing the exact origin you're visiting from — check the browser's address bar domain against the list character-for-character, including `www.`.
 - **Images broken sitewide:** `WORKER_PUBLIC_URL` (step 1.5) not set to your real Worker URL, or `VITE_API_BASE_URL` (step 2.1) not set in the Pages dashboard — check both.

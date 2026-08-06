@@ -3,6 +3,7 @@ import { Check, X, Trash2, Pencil, Star } from 'lucide-react';
 import { AdminPageHeader, FormRow } from '../components/AdminUi';
 import { AdminModal } from '../components/AdminModal';
 import { DataTable } from '../components/DataTable';
+import { ImageUploadField } from '../components/ImageUploadField';
 import { Badge } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { StarRating } from '@/components/ui/StarRating';
@@ -22,6 +23,8 @@ interface ReviewEditFormState {
   rating: number;
   title: string;
   body: string;
+  mediaType: 'none' | 'image' | 'video';
+  mediaSrc: string;
 }
 
 function toStarRating(n: number): 1 | 2 | 3 | 4 | 5 {
@@ -71,6 +74,8 @@ export function AdminReviewsPage() {
       rating: review.rating,
       title: review.title,
       body: review.body,
+      mediaType: review.mediaType ?? 'none',
+      mediaSrc: review.mediaSrc ?? '',
     });
     setEditError(null);
   };
@@ -107,6 +112,8 @@ export function AdminReviewsPage() {
           rating: toStarRating(editForm.rating),
           title: editForm.title.trim(),
           body: editForm.body.trim(),
+          mediaType: editForm.mediaType,
+          mediaSrc: editForm.mediaType === 'none' ? null : editForm.mediaSrc || null,
         },
       },
       {
@@ -223,6 +230,31 @@ export function AdminReviewsPage() {
                 value={editForm.body}
                 onChange={(e) => setEditForm((f) => (f ? { ...f, body: e.target.value } : f))}
               />
+            </FormRow>
+            <FormRow label="Attached photo or video (optional)">
+              <div className="space-y-2">
+                <div className="flex items-center gap-4 text-sm">
+                  {(['none', 'image', 'video'] as const).map((opt) => (
+                    <label key={opt} className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        checked={editForm.mediaType === opt}
+                        onChange={() => setEditForm((f) => (f ? { ...f, mediaType: opt } : f))}
+                        className="h-3.5 w-3.5"
+                      />
+                      {opt === 'none' ? 'None' : opt === 'image' ? 'Photo' : 'Video'}
+                    </label>
+                  ))}
+                </div>
+                {editForm.mediaType !== 'none' && (
+                  <ImageUploadField
+                    accept="image+video"
+                    mediaType={editForm.mediaType === 'video' ? 'video' : 'image'}
+                    value={editForm.mediaSrc}
+                    onChange={(mediaSrc) => setEditForm((f) => (f ? { ...f, mediaSrc } : f))}
+                  />
+                )}
+              </div>
             </FormRow>
             {editError && (
               <p role="alert" className="text-sm text-[var(--color-coral-deep)]">

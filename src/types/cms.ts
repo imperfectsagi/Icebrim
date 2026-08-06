@@ -39,6 +39,9 @@ export interface HeroBannerContent {
     src: string;
     alt: string;
   };
+  /** 'image' (default) | 'video' | 'gif'. When 'video', `videoSrc` holds the clip URL and `image.src` (if set) is used as the poster/fallback. */
+  mediaType?: 'image' | 'video' | 'gif';
+  videoSrc?: string;
   trustBadges: string[];
 }
 
@@ -189,6 +192,9 @@ export interface BlogPost {
   excerpt: string;
   contentHtml: string;
   featuredImage: { src: string; alt: string };
+  /** 'image' (default) | 'video' | 'gif'. When 'video', `featuredVideoSrc` holds the clip and `featuredImage.src` (if set) is the poster frame. */
+  featuredMediaType?: 'image' | 'video' | 'gif';
+  featuredVideoSrc?: string;
   category: string;
   tags: string[];
   author: string;
@@ -209,6 +215,9 @@ export interface Review {
   body: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  /** 'none' (default) | 'image' | 'video' -- an optional customer-attached photo or short video review. */
+  mediaType?: 'none' | 'image' | 'video';
+  mediaSrc?: string;
 }
 
 /* --------------------------------- Gallery -------------------------------- */
@@ -219,6 +228,9 @@ export interface GalleryImage {
   alt: string;
   caption?: string;
   category?: string;
+  /** 'image' (default) | 'video' | 'gif' */
+  mediaType?: 'image' | 'video' | 'gif';
+  videoSrc?: string;
 }
 
 /* -------------------------------- Contact --------------------------------- */

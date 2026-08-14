@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Static fallback shown before JS runs / if it fails to load. Once the
+         app hydrates, ThemeLoader (src/components/common/ThemeLoader.tsx)
+         overwrites this with the favicon configured in Admin > Company
+         Settings. Update the file this points to only if you want to change
+         the *fallback* -- for the live site favicon, use the admin panel. -->
+    <link rel="icon" type="image/png" href="/assets/brand/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Icebrim — Cooling Relief Caps for Migraines & Menopause</title>
+    <meta
+      name="description"
+      content="Icebrim makes reusable cooling comfort caps for migraines, tension headaches, and menopause hot flushes. Drug-free relief, shaped to actually fit."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

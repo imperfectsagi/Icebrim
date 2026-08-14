@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment-specific config: never track these. .env.example is the only
+# env file meant to be committed (it documents required vars with no real
+# values). Real per-environment values belong in .env.local (git-ignored via
+# *.local above) or, for production, in the Cloudflare Pages dashboard
+# environment variables -- see DEPLOYMENT.md.
+.env
+.env.production
+.env.development
+.env.*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local production database backup and Wrangler state
+backup-pre-fix.sql
+.wrangler/

@@ -1,0 +1,14 @@
+-- ---------------------------------------------------------------------------
+-- Product video.
+--
+-- One optional video per product, alongside (not replacing) the existing
+-- product_images gallery -- same "alongside" relationship as
+-- HeroBannerContent.videoSrc sits alongside HeroBannerContent.image, and
+-- BlogPost.featuredVideoSrc sits alongside BlogPost.featuredImage (see
+-- migration 0002_media_video_support.sql for that precedent). A
+-- product-level single column (not a per-image video flag on
+-- product_images) because the product detail page shows one gallery of
+-- photos plus, optionally, one product video -- not a video-per-photo
+-- concept the current gallery UI has no use for.
+-- ---------------------------------------------------------------------------
+ALTER TABLE products ADD COLUMN video_url TEXT;

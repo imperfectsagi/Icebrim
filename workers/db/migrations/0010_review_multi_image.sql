@@ -1,0 +1,20 @@
+-- ---------------------------------------------------------------------------
+-- Reviews: allow multiple attached photos, in addition to the existing
+-- single media_type/media_src slot (see migration 0002_media_video_support.sql).
+--
+-- WHY a separate column rather than reworking media_type/media_src:
+-- media_type/media_src already exists in production and is read/written by
+-- the admin edit form (AdminReviewsPage.tsx) and the public ReviewCard.tsx
+-- as a single image-OR-video slot. Reworking that column pair to hold an
+-- array would require a data migration of every existing review's media
+-- and rewriting working, unrelated admin code -- out of scope for "add
+-- image upload alongside video" and unnecessary risk to existing data.
+-- Instead: media_type/media_src is kept exactly as-is and continues to be
+-- usable for a single photo or a short video (unchanged behavior for
+-- existing rows), and this new media_images column adds an *additional*,
+-- independent list of photos a customer can attach alongside that. A
+-- review can therefore have: 0 or 1 video (media_type='video'), plus 0+
+-- extra photos in media_images, plus optionally the single legacy photo
+-- slot (media_type='image') for reviews submitted before this change.
+-- ---------------------------------------------------------------------------
+ALTER TABLE reviews ADD COLUMN media_images TEXT NOT NULL DEFAULT '[]'; -- JSON array of image URL strings

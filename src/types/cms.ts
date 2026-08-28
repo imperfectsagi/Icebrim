@@ -278,19 +278,6 @@ export interface Review {
   mediaImages?: string[];
 }
 
-/* --------------------------------- Gallery -------------------------------- */
-
-export interface GalleryImage {
-  id: string;
-  src: string;
-  alt: string;
-  caption?: string;
-  category?: string;
-  /** 'image' (default) | 'video' | 'gif' */
-  mediaType?: 'image' | 'video' | 'gif';
-  videoSrc?: string;
-}
-
 /* -------------------------------- Contact --------------------------------- */
 
 export interface ContactMessage {

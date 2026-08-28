@@ -7,7 +7,7 @@ import { normalizeCouponCode, type CouponRow } from '../lib/coupons';
 import { toMinorUnits, toDecimal } from '../lib/money';
 import { logAuditEvent, getClientIp } from '../lib/login-security';
 
-// Same access level as adminOrders/adminGallery/adminContent -- both
+// Same access level as adminOrders/adminContent -- both
 // 'admin' and 'editor' roles can manage coupons; requireAdminRole (owner
 // only) is reserved for user management, theme, and system settings, not
 // day-to-day content/commerce operations (see middleware/auth.ts).

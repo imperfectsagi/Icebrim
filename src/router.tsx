@@ -11,7 +11,6 @@ const ProductsPage = lazy(() => import('@/pages/ProductsPage'));
 const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage'));
 const BlogPage = lazy(() => import('@/pages/BlogPage'));
 const BlogDetailPage = lazy(() => import('@/pages/BlogDetailPage'));
-const GalleryPage = lazy(() => import('@/pages/GalleryPage'));
 const ContactPage = lazy(() => import('@/pages/ContactPage'));
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
 const OrderConfirmationPage = lazy(() => import('@/pages/OrderConfirmationPage'));
@@ -51,7 +50,6 @@ const router = createBrowserRouter([
         path: 'blog/:slug',
         element: withSuspense(<BlogDetailPage />),
       },
-      { path: 'gallery', element: withSuspense(<GalleryPage />) },
       { path: 'contact', element: withSuspense(<ContactPage />) },
       { path: 'checkout', element: withSuspense(<CheckoutPage />) },
       {

@@ -5,7 +5,6 @@ import { useCompanySettings, useProducts } from '@/hooks/useContent';
 
 const learnLinks = [
   { label: 'Blog', href: '/blog' },
-  { label: 'Gallery', href: '/gallery' },
 ];
 
 const companyLinks = [

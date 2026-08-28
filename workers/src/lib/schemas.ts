@@ -144,38 +144,6 @@ export const categoryWriteSchema = z.object({
   slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
 });
 
-export const galleryImageWriteSchema = z.object({
-  src: z.string().max(500),
-  alt: z.string().min(1).max(200),
-  caption: z.string().max(300).optional(),
-  category: z.string().max(80).optional(),
-  // Optional: this entry can be a video or animated GIF instead of a
-  // static image. mediaType defaults to 'image' server-side (see the
-  // route handler) for entries created before this field existed.
-  mediaType: z.enum(['image', 'video', 'gif']).optional(),
-  videoSrc: z.string().max(500).optional(),
-}).refine((v) => (v.mediaType === 'video' ? (v.videoSrc?.length ?? 0) > 0 : v.src.length > 0), {
-  message: 'An image, GIF, or video is required',
-  path: ['src'],
-});
-
-// Same fields as create, but every field is optional so PATCH can update
-// just one field (e.g. only the caption) without resending everything.
-export const galleryImagePatchSchema = z.object({
-  src: z.string().max(500).optional(),
-  alt: z.string().min(1).max(200).optional(),
-  caption: z.string().max(300).nullable().optional(),
-  category: z.string().max(80).nullable().optional(),
-  mediaType: z.enum(['image', 'video', 'gif']).optional(),
-  videoSrc: z.string().max(500).nullable().optional(),
-});
-
-export const galleryReorderSchema = z.object({
-  // Ordered array of gallery image IDs, front-to-back. Every ID present
-  // gets sort_order set to its index in this array.
-  orderedIds: z.array(z.string().min(1)).min(1).max(500),
-});
-
 export const businessHoursSchema = z.object({
   day: z.string().min(1).max(40),
   hours: z.string().min(1).max(40),
@@ -295,7 +263,7 @@ export const policyPageWriteSchema = z.object({
 // segments in src/router.tsx.
 // ---------------------------------------------------------------------------
 export const RESERVED_PAGE_SLUGS = [
-  'about', 'products', 'blog', 'gallery', 'contact', 'checkout',
+  'about', 'products', 'blog', 'contact', 'checkout',
   'order-confirmation', 'order-status', 'privacy-policy', 'terms',
   'cookie-policy', 'admin', 'pages', 'api', 'media',
 ] as const;

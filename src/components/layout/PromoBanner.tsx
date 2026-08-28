@@ -16,7 +16,7 @@ export function PromoBanner() {
     data.linkType === 'product' && data.linkSlug
       ? `/products/${data.linkSlug}`
       : data.linkType === 'page' && data.linkSlug
-        ? `/pages/${data.linkSlug}`
+        ? `/${data.linkSlug}`
         : null;
 
   const content = (

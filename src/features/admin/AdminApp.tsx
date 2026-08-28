@@ -13,7 +13,6 @@ import { AdminDeliveryPage } from './pages/AdminDeliveryPage';
 import { AdminHomeSectionsPage } from './pages/AdminHomeSectionsPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
 import { AdminMediaPage } from './pages/AdminMediaPage';
-import { AdminGalleryPage } from './pages/AdminGalleryPage';
 import { AdminBannerPage } from './pages/AdminBannerPage';
 import { AdminPoliciesPage } from './pages/AdminPoliciesPage';
 import { AdminPolicyFormPage } from './pages/AdminPolicyFormPage';
@@ -53,7 +52,6 @@ export default function AdminApp() {
           <Route path="pages/:id" element={<AdminPageFormPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="media" element={<AdminMediaPage />} />
-          <Route path="gallery" element={<AdminGalleryPage />} />
           <Route path="banner" element={<AdminBannerPage />} />
           <Route path="home-sections" element={<AdminHomeSectionsPage />} />
           <Route path="policies" element={<AdminPoliciesPage />} />

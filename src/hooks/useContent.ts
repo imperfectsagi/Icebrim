@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, hasLiveApi } from '@/lib/api-client';
-import type { HomePageContent, CompanySettings, Product, BlogPost, Review, GalleryImage, PolicyPageContent, PolicyPageKey, CmsPage, PromoBannerContent, DeliveryInfoContent } from '@/types/cms';
+import type { HomePageContent, CompanySettings, Product, BlogPost, Review, PolicyPageContent, PolicyPageKey, CmsPage, PromoBannerContent, DeliveryInfoContent } from '@/types/cms';
 import { homeContent } from '@/data/home';
 import { companySettings } from '@/data/company';
 import { products } from '@/data/products';
@@ -135,14 +135,6 @@ export function useMaintenanceStatus() {
   });
 }
 
-export function useGalleryImages() {
-  return useQuery<GalleryImage[]>({
-    queryKey: ['gallery'],
-    queryFn: () => (hasLiveApi ? api.get('/api/gallery') : Promise.resolve(fallbackGallery)),
-    staleTime: 60 * 1000,
-  });
-}
-
 /**
  * Public read of an admin-editable policy page (Privacy/Cookie/Terms).
  * Falls back to the seeded copy in src/data/policy.ts in local/offline
@@ -174,17 +166,4 @@ export function useCmsPage(slug: string | undefined) {
   });
 }
 
-const fallbackGallery: GalleryImage[] = [
-  {
-    id: 'g1',
-    src: '/assets/products/cooling-relief-cap/hero-lifestyle.jpg',
-    alt: 'Icebrim Cooling Relief Cap in use at home',
-    category: 'Lifestyle',
-  },
-  {
-    id: 'g2',
-    src: '/assets/products/twin-pack/hero.jpg',
-    alt: 'Icebrim Rotation Twin Pack packaging',
-    category: 'Product',
-  },
-];
+

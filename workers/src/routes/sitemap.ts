@@ -10,7 +10,7 @@ import type { Env } from '../lib/env';
 export const sitemap = new Hono<{ Bindings: Env }>();
 
 const STATIC_PATHS = [
-  '', 'about', 'products', 'blog', 'gallery', 'contact',
+  '', 'about', 'products', 'blog', 'contact',
   'privacy-policy', 'terms', 'cookie-policy',
 ];
 

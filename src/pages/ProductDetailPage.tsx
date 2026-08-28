@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { StarRating } from '@/components/ui/StarRating';
 import { ReviewCard } from '@/components/common/ReviewCard';
 import { ReviewForm } from '@/components/common/ReviewForm';
+import { DeliveryInfo } from '@/components/common/DeliveryInfo';
 import { SeoHead } from '@/components/common/SeoHead';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { useProduct, useApprovedReviews } from '@/hooks/useContent';
@@ -220,6 +221,8 @@ export default function ProductDetailPage() {
                   'Add to Cart'
                 )}
               </Button>
+
+              <DeliveryInfo className="mt-4" />
 
               {product.specs.length > 0 && (
                 <dl className="mt-10 divide-y divide-[var(--color-line)] border-t border-[var(--color-line)]">

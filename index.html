@@ -2,6 +2,61 @@
 <html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Branding-color flash fix (pre-hydration cache read)
+      -----------------------------------------------------
+      --color-coral et al default to #11534E in src/index.css (a real,
+      intentional first-time-visitor default -- see lib/color.ts's
+      DEFAULT_ACCENT_COLOR). Historically nothing overrode that default
+      until React mounted AND the ThemeLoader component's
+      /api/settings/theme fetch resolved, so anyone who had saved a
+      *different* accent color in Admin -> Branding would see a flash of
+      #11534E on every hard refresh for however long that request took.
+
+      Fix: ThemeLoader (src/components/common/ThemeLoader.tsx) caches the
+      last-fetched accent color to localStorage under 'icebrim-accent-color'
+      every time it successfully applies one. This script runs synchronously,
+      before any CSS paints and before React mounts, and -- if a cached value
+      exists -- applies the exact same derived shades directly as inline
+      styles on <html>, so the correct color is already in place at first
+      paint instead of waiting on a network round trip.
+
+      If no cached value exists (a genuinely new/unconfigured browser, or
+      the very first visit before any admin has ever saved a color), this
+      does nothing and the real #11534E default in index.css applies, which
+      is correct, expected behavior for that case -- not a bug.
+
+      This is a plain, dependency-free duplication of the derivation math in
+      src/lib/color.ts's deriveShades()/darken()/lighten() (a <script> here
+      can't import a TS module) -- keep the two in sync if that math ever
+      changes. Wrapped in try/catch since localStorage can throw in some
+      private-browsing modes; any failure here just falls back to the CSS
+      default, which is always safe.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('icebrim-accent-color');
+          if (!raw || !/^#[0-9a-fA-F]{6}$/.test(raw)) return;
+          var hex = raw;
+          var int = parseInt(hex.slice(1), 16);
+          var r = (int >> 16) & 255, g = (int >> 8) & 255, b = int & 255;
+          function toHex(rr, gg, bb) {
+            function c(n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0'); }
+            return '#' + c(rr) + c(gg) + c(bb);
+          }
+          var deep = toHex(r * 0.82, g * 0.82, b * 0.82); // darken(amount: 0.18)
+          var tint = toHex(r + (255 - r) * 0.87, g + (255 - g) * 0.87, b + (255 - b) * 0.87); // lighten(amount: 0.87)
+          var root = document.documentElement.style;
+          root.setProperty('--color-coral', hex);
+          root.setProperty('--color-coral-deep', deep);
+          root.setProperty('--color-coral-tint', tint);
+        } catch (e) {
+          // localStorage unavailable or corrupted value -- fall back to the
+          // real CSS default (#11534E), same as a first-time visitor.
+        }
+      })();
+    </script>
     <!-- Static fallback shown before JS runs / if it fails to load. Once the
          app hydrates, ThemeLoader (src/components/common/ThemeLoader.tsx)
          overwrites this with the favicon configured in Admin > Company

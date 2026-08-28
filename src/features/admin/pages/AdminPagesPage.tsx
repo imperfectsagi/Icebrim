@@ -18,7 +18,7 @@ export function AdminPagesPage() {
     <div>
       <AdminPageHeader
         title="Pages"
-        description="Create and manage standalone pages (e.g. FAQs, shipping info) published at /pages/:slug."
+        description="Manage standalone pages -- built-in pages like About, plus any custom pages you add (e.g. FAQ, shipping info). Each is published at its own URL, e.g. /about or /faq."
         action={{ label: 'Add Page', onClick: () => navigate('/admin/pages/new') }}
       />
 
@@ -29,10 +29,18 @@ export function AdminPagesPage() {
           rows={pages ?? []}
           emptyMessage="No pages yet. Add one to publish standalone content like FAQs or shipping info."
           columns={[
-            { header: 'Title', accessor: (p) => <span className="font-medium">{p.title}</span> },
             {
-              header: 'Slug',
-              accessor: (p) => <span className="font-mono text-xs text-[var(--color-ink-soft)]">/pages/{p.slug}</span>,
+              header: 'Title',
+              accessor: (p) => (
+                <span className="font-medium inline-flex items-center gap-2">
+                  {p.title}
+                  {p.isSystem && <Badge tone="ice">Built-in</Badge>}
+                </span>
+              ),
+            },
+            {
+              header: 'URL',
+              accessor: (p) => <span className="font-mono text-xs text-[var(--color-ink-soft)]">/{p.slug}</span>,
             },
             {
               header: 'Status',
@@ -41,10 +49,14 @@ export function AdminPagesPage() {
                   type="button"
                   onClick={() => setStatus.mutate({ id: p.id, status: p.status === 'published' ? 'draft' : 'published' })}
                   disabled={setStatus.isPending}
-                  title={p.status === 'published' ? 'Click to unpublish' : 'Click to publish'}
+                  title={
+                    p.status === 'published'
+                      ? `Click to disable -- /${p.slug} will show a not-found page`
+                      : `Click to enable -- publishes at /${p.slug}`
+                  }
                 >
                   <Badge tone={p.status === 'published' ? 'ice' : 'coral'}>
-                    {p.status === 'published' ? 'Published' : 'Draft'}
+                    {p.status === 'published' ? 'Enabled' : 'Disabled'}
                   </Badge>
                 </button>
               ),
@@ -55,7 +67,7 @@ export function AdminPagesPage() {
             <div className="flex items-center gap-1 justify-end">
               {p.status === 'published' && (
                 <a
-                  href={`/pages/${p.slug}`}
+                  href={`/${p.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`View ${p.title}`}
@@ -71,13 +83,15 @@ export function AdminPagesPage() {
               >
                 <Pencil size={15} />
               </button>
-              <button
-                onClick={() => setConfirmId(p.id)}
-                aria-label={`Delete ${p.title}`}
-                className="p-2 rounded-lg hover:bg-[var(--color-coral-tint)] text-[var(--color-coral-deep)]"
-              >
-                <Trash2 size={15} />
-              </button>
+              {!p.isSystem && (
+                <button
+                  onClick={() => setConfirmId(p.id)}
+                  aria-label={`Delete ${p.title}`}
+                  className="p-2 rounded-lg hover:bg-[var(--color-coral-tint)] text-[var(--color-coral-deep)]"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
             </div>
           )}
         />

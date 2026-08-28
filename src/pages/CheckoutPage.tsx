@@ -6,6 +6,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Container } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { SeoHead } from '@/components/common/SeoHead';
+import { DeliveryInfo } from '@/components/common/DeliveryInfo';
 import { useCart } from '@/features/cart/CartContext';
 import { api, ApiError } from '@/lib/api-client';
 import { loadExternalScript } from '@/lib/loadExternalScript';
@@ -263,6 +264,8 @@ export default function CheckoutPage() {
               Shipping is calculated at the next step (free over {formatPrice(70, currency)}).
             </p>
           </div>
+
+          <DeliveryInfo className="mb-8" />
 
           {step === 'paying' ? (
             <div className="text-center py-16">

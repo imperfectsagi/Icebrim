@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../lib/env';
 import type { AuthedVariables } from '../middleware/auth';
 import { requireAuth, requireAdminRole } from '../middleware/auth';
-import { companySettingsWriteSchema, policyPageWriteSchema, promoBannerWriteSchema } from '../lib/schemas';
+import { companySettingsWriteSchema, policyPageWriteSchema, promoBannerWriteSchema, deliveryInfoWriteSchema } from '../lib/schemas';
 import { sanitizeBlogHtml } from '../lib/sanitize-html';
 import { logAuditEvent, getClientIp } from '../lib/login-security';
 
@@ -243,6 +243,38 @@ adminContent.put('/promo-banner', async (c) => {
   return c.json(parsed.data);
 });
 
+// ---------------------------------------------------------------------------
+// Delivery information (estimated delivery time, e.g. "2-4 working days")
+// -- same site_content key/value pattern as promo_banner above. Admin-only
+// (not requireAdminRole) for the same reason promo-banner is: editors
+// already manage comparable site-wide text content elsewhere in this file.
+// See lib/schemas.ts's deliveryInfoWriteSchema and
+// src/components/common/DeliveryInfo.tsx (the one shared component every
+// public display location renders, so there is exactly one place the
+// saved text is read and formatted).
+// ---------------------------------------------------------------------------
+adminContent.get('/delivery-info', async (c) => {
+  const value = await getSiteContentRaw(c.env.DB, 'delivery_info');
+  return c.json(value ?? { enabled: false, text: '' });
+});
+
+adminContent.put('/delivery-info', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = deliveryInfoWriteSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Invalid delivery information' }, 400);
+
+  await upsertSiteContent(c.env.DB, 'delivery_info', parsed.data, c.get('userId'));
+  await logAuditEvent(c.env.DB, {
+    userId: c.get('userId'),
+    action: 'delivery_info_updated',
+    ip: getClientIp(c.req.raw.headers),
+    userAgent: c.req.header('User-Agent') ?? null,
+    metadata: { enabled: parsed.data.enabled },
+  });
+
+  return c.json(parsed.data);
+});
+
 adminSettings.get('/system', async (c) => {
   const value = await getSiteContentRaw(c.env.DB, 'system_settings');
   return c.json(value ?? { maintenanceMode: false, maintenanceMessage: '', sessionTimeoutMinutes: 15 });
@@ -300,5 +332,14 @@ publicSettings.get('/promo-banner', async (c) => {
     text: value?.text ?? '',
     linkType: value?.linkType ?? 'none',
     linkSlug: value?.linkSlug ?? '',
+  });
+});
+
+publicSettings.get('/delivery-info', async (c) => {
+  const value = (await getSiteContentRaw(c.env.DB, 'delivery_info')) as { enabled?: boolean; text?: string } | null;
+  c.header('Cache-Control', 'public, max-age=60');
+  return c.json({
+    enabled: value?.enabled ?? false,
+    text: value?.text ?? '',
   });
 });

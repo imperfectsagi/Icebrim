@@ -285,7 +285,21 @@ export const policyPageWriteSchema = z.object({
 // Page Management -- generic, admin-created CMS pages (as opposed to the
 // three fixed policy pages above). See migration 0008_pages.sql and
 // routes/pages.ts. Same rich-text sanitization pipeline as blog posts.
+//
+// Custom pages resolve at their own direct top-level slug (e.g. /faq --
+// see src/router.tsx's catch-all ':slug' route and CustomPage.tsx), so a
+// saved slug must never collide with one of the app's real static
+// routes -- otherwise the static route would always win (react-router
+// matches fixed paths before the catch-all) and the page would be
+// silently unreachable. Keep this list in sync with the top-level path
+// segments in src/router.tsx.
 // ---------------------------------------------------------------------------
+export const RESERVED_PAGE_SLUGS = [
+  'about', 'products', 'blog', 'gallery', 'contact', 'checkout',
+  'order-confirmation', 'order-status', 'privacy-policy', 'terms',
+  'cookie-policy', 'admin', 'pages', 'api', 'media',
+] as const;
+
 export const pageWriteSchema = z.object({
   title: z.string().min(1).max(200),
   slug: z
@@ -314,6 +328,21 @@ export const promoBannerWriteSchema = z.object({
   text: z.string().max(200),
   linkType: z.enum(['none', 'product', 'page']),
   linkSlug: z.string().max(200).optional().default(''),
+});
+
+// ---------------------------------------------------------------------------
+// Delivery information (estimated delivery time shown to customers) --
+// same site_content key/value pattern as promo_banner/theme above. This is
+// deliberately its own setting rather than folded into companySettings or
+// a policy page: the requirement is a short, structured piece of text
+// ("2-4 working days") that needs to be read consistently by multiple,
+// separate public UI locations (product page, checkout, order
+// confirmation/status) without each one parsing it out of a longer prose
+// block. See routes/admin-content.ts and DeliveryInfo.tsx.
+// ---------------------------------------------------------------------------
+export const deliveryInfoWriteSchema = z.object({
+  enabled: z.boolean(),
+  text: z.string().max(120),
 });
 
 // ---------------------------------------------------------------------------

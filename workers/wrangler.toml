@@ -111,3 +111,18 @@ crons = ["*/5 * * * *"]
 # ---------------------------------------------------------------------------
 [dev]
 port = 8787
+[env.staging]
+name = "icebrim-api-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "icebrim-db-staging"
+database_id = "eb14b462-e851-4c94-bac6-2bd60fb0c03b"
+migrations_dir = "db/migrations"
+
+[[env.staging.r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "icebrim-media-staging"

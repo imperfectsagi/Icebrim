@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Container } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { SeoHead } from '@/components/common/SeoHead';
+import { DeliveryInfo } from '@/components/common/DeliveryInfo';
 import { api, ApiError } from '@/lib/api-client';
 import { formatPrice } from '@/lib/utils';
 import type { Order } from '@/types/cms';
@@ -125,6 +126,8 @@ export default function OrderConfirmationPage() {
                   <span>{formatPrice(order.total, order.currency)}</span>
                 </div>
               </div>
+
+              <DeliveryInfo className="justify-center mb-8" />
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button href="/products" variant="secondary">

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env } from '../lib/env';
 import type { AuthedVariables } from '../middleware/auth';
 import { requireAuth } from '../middleware/auth';
-import { pageWriteSchema } from '../lib/schemas';
+import { pageWriteSchema, RESERVED_PAGE_SLUGS } from '../lib/schemas';
 import { sanitizeBlogHtml } from '../lib/sanitize-html';
 import { logAuditEvent, getClientIp } from '../lib/login-security';
 
@@ -17,6 +17,7 @@ interface PageRow {
   status: 'draft' | 'published';
   seo_title: string;
   seo_description: string;
+  is_system: number;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +30,7 @@ function serializePage(row: PageRow) {
     contentHtml: row.content_html,
     status: row.status,
     seo: { title: row.seo_title, description: row.seo_description },
+    isSystem: !!row.is_system,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -63,6 +65,10 @@ adminPages.post('/', async (c) => {
   if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Invalid page data' }, 400);
   const input = parsed.data;
 
+  if ((RESERVED_PAGE_SLUGS as readonly string[]).includes(input.slug)) {
+    return c.json({ error: 'This slug is reserved for a built-in page and cannot be used' }, 409);
+  }
+
   const existingSlug = await c.env.DB.prepare('SELECT id FROM pages WHERE slug = ?').bind(input.slug).first();
   if (existingSlug) return c.json({ error: 'A page with this URL slug already exists' }, 409);
 
@@ -95,10 +101,28 @@ adminPages.put('/:id', async (c) => {
   if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Invalid page data' }, 400);
   const input = parsed.data;
 
-  const existing = await c.env.DB.prepare('SELECT id FROM pages WHERE id = ?').bind(id).first();
+  const existing = await c.env.DB.prepare('SELECT id, slug, is_system FROM pages WHERE id = ?')
+    .bind(id)
+    .first<{ id: string; slug: string; is_system: number }>();
   if (!existing) return c.json({ error: 'Page not found' }, 404);
 
-  if (input.slug !== undefined) {
+  // System pages (About, and any future built-in page seeded the same
+  // way) have a fixed route in src/router.tsx and other parts of the
+  // site may link to that exact path, so their slug can't be changed --
+  // everything else about them (title, content, SEO, publish status)
+  // remains fully editable. pageWriteSchema's reserved-slug check would
+  // otherwise also block a system page from being saved with its own
+  // existing reserved slug (e.g. "about" trying to keep being "about"),
+  // so this is checked explicitly rather than relying on that refine().
+  if (existing.is_system && input.slug !== undefined && input.slug !== existing.slug) {
+    return c.json({ error: 'This is a built-in page and its URL cannot be changed' }, 400);
+  }
+
+  if (!existing.is_system && input.slug !== undefined && (RESERVED_PAGE_SLUGS as readonly string[]).includes(input.slug)) {
+    return c.json({ error: 'This slug is reserved for a built-in page and cannot be used' }, 409);
+  }
+
+  if (input.slug !== undefined && input.slug !== existing.slug) {
     const slugTaken = await c.env.DB.prepare('SELECT id FROM pages WHERE slug = ? AND id != ?').bind(input.slug, id).first();
     if (slugTaken) return c.json({ error: 'A page with this URL slug already exists' }, 409);
   }
@@ -161,8 +185,13 @@ adminPages.patch('/:id/status', async (c) => {
 
 adminPages.delete('/:id', async (c) => {
   const id = c.req.param('id');
-  const existing = await c.env.DB.prepare('SELECT id FROM pages WHERE id = ?').bind(id).first();
+  const existing = await c.env.DB.prepare('SELECT id, is_system FROM pages WHERE id = ?')
+    .bind(id)
+    .first<{ id: string; is_system: number }>();
   if (!existing) return c.json({ error: 'Page not found' }, 404);
+  if (existing.is_system) {
+    return c.json({ error: 'This is a built-in page and cannot be deleted. Unpublish it instead if you want it hidden.' }, 400);
+  }
 
   await c.env.DB.prepare('DELETE FROM pages WHERE id = ?').bind(id).run();
   await logAuditEvent(c.env.DB, {

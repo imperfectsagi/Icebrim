@@ -71,8 +71,17 @@ const router = createBrowserRouter([
         path: 'cookie-policy',
         element: withSuspense(<CookiePolicyPage />),
       },
+      // Admin-managed custom pages (Admin -> Pages) resolve directly by
+      // their own slug -- e.g. a page with slug "faq" is served at
+      // /faq, not /pages/faq. This route only matches paths that didn't
+      // match anything above, so it can never shadow a real static
+      // route (see reservedSlugs in workers/src/lib/schemas.ts, which
+      // rejects an admin from saving a page with a slug that collides
+      // with one of the fixed paths in this file). CustomPage.tsx 404s
+      // via NotFoundPage itself if no published page matches the slug,
+      // so this doubles as the catch-all that path: '*' used to be.
       {
-        path: 'pages/:slug',
+        path: ':slug',
         element: withSuspense(<CustomPage />),
       },
       { path: '*', element: withSuspense(<NotFoundPage />) },

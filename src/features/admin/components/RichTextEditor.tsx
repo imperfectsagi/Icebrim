@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
-import { Bold, Italic, List, ListOrdered, Heading2, Link as LinkIcon } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, Heading2, Link as LinkIcon, Quote } from 'lucide-react';
 
 /**
  * A minimal rich text editor using the browser's built-in contentEditable
@@ -9,7 +9,15 @@ import { Bold, Italic, List, ListOrdered, Heading2, Link as LinkIcon } from 'luc
  * headings, links). Output HTML is sanitized again server-side and via
  * <RichText> before ever being rendered on the public site.
  */
-export function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+export function RichTextEditor({
+  value,
+  onChange,
+  ariaLabel = 'Rich text content',
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  ariaLabel?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
@@ -49,6 +57,9 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
         <ToolbarButton label="Numbered list" onClick={() => exec('insertOrderedList')}>
           <ListOrdered size={14} />
         </ToolbarButton>
+        <ToolbarButton label="Quote" onClick={() => exec('formatBlock', 'blockquote')}>
+          <Quote size={14} />
+        </ToolbarButton>
         <ToolbarButton label="Insert link" onClick={handleLink}>
           <LinkIcon size={14} />
         </ToolbarButton>
@@ -58,7 +69,7 @@ export function RichTextEditor({ value, onChange }: { value: string; onChange: (
         contentEditable
         role="textbox"
         aria-multiline="true"
-        aria-label="Blog post content"
+        aria-label={ariaLabel}
         className="prose-content px-4 py-3 min-h-[240px] focus:outline-none"
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
       />

@@ -54,7 +54,7 @@ npx wrangler r2 bucket create icebrim-media
 npx wrangler d1 migrations apply icebrim-db --remote
 ```
 
-This applies all four migrations in `workers/db/migrations/`: `0001_initial_schema.sql` (the original schema), `0002_media_video_support.sql` (adds video/GIF support to the banner, blog, gallery, and reviews — see section 7 below), `0003_media_categories.sql` (organizes uploads into folders — Products/Banners/Blog/Company/Gallery/Other), and `0004_orders_schema.sql` (the e-commerce orders/checkout schema — see section 6 below). Wrangler tracks which migrations have already run, so it's always safe to re-run this command after pulling new changes — it only applies what's new.
+This applies every migration in `workers/db/migrations/` in order: `0001_initial_schema.sql` through `0012_about_page_cms.sql` at the time of writing (see section 10 below for what each of migrations 0008–0012 adds). Wrangler tracks which migrations have already run, so it's always safe to re-run this command after pulling new changes — it only applies what's new.
 
 (Use `--local` instead when testing with `wrangler dev` locally.)
 
@@ -190,6 +190,11 @@ After deploying both sides, check in this order:
 7. Log out from the sidebar — you should land on `/admin/login` immediately.
 8. **Mobile-specific check (do this even if desktop looks fine):** on an actual phone (not just a resized desktop browser window — mobile Safari/WebKit's cookie handling doesn't match desktop DevTools' device emulation), log into `/admin/login`, wait a minute, then pull-to-refresh the page. If you're bounced back to the login screen even though the credentials were correct, the Worker is still on a different registrable domain than the frontend (e.g. `*.workers.dev` vs your custom domain) — see §4 step 3 for the fix. This is a cross-site-cookie limitation mobile browsers enforce more strictly than desktop, not a bug in the token logic itself.
 9. **Incognito/private-browsing check:** open the public homepage in a private/incognito window. If the hero banner or other images fail to load with the browser console showing `net::ERR_BLOCKED` (not `404`), that's a content-blocker (ad-blocker extension, or the browser's own tracker-blocking in private mode) matching something in the request URL — not a server error. `404 Not Found` is a different problem: it means the stored media URL itself is stale, most often because `WORKER_PUBLIC_URL` (step 1.5) was changed after some items were already uploaded. Re-run the affected uploads, or see `workers/scripts/` for a one-time URL-repair script if this affects many existing items.
+10. **Branding color, hard refresh:** in Admin → Branding, save a color other than `#11534E`. Hard-refresh the public site (Ctrl/Cmd+Shift+R). The saved color should be there immediately — no flash of `#11534E` first. See §10.3.
+11. **Review with photo/video, as a logged-out visitor:** on any product page, submit a review with 1-2 photos and a short video attached. It should submit successfully ("pending approval"). In Admin → Reviews, find it and confirm you can see the uploaded media. See §10.2.
+12. **Page Management:** in Admin → Pages, add a new page (e.g. slug `test-page`), publish it, and visit `/test-page` on the public site — it should show your content. Disable it — the URL should now 404. Also open the built-in "About" page here, confirm its URL field is locked, edit its content, save, and confirm `/about` reflects the change.
+13. **Delivery Info:** in Admin → Delivery Info, turn it on with some text (e.g. "2-4 working days") and save. Check a product page, checkout, and (after placing a test order) the order confirmation page — all three should show the same text. Turn it off and confirm it disappears from all three.
+14. **Fixed coupon discount:** in Admin → Coupons, create a fixed discount of exactly `5`. Place a test order using it and confirm exactly £5.00 (not £0.05) is deducted.
 
 ---
 
@@ -250,7 +255,7 @@ This repair added new tables (`orders`, `order_items`, `order_status_history`) a
 ```bash
 npx wrangler d1 migrations apply icebrim-db --remote
 ```
-and confirm it reports all 4 migrations as applied, not just however many existed before this update.
+and confirm it reports every migration file present in `workers/db/migrations/` as applied, not just however many existed before this update.
 
 ### 6.5 Confirm the stock-reservation cron is running
 
@@ -335,3 +340,58 @@ If your current banner or gallery images look too large/heavy on the live site e
 - **Admin gets logged out on mobile after refreshing, but desktop is fine:** this is the cross-site auth cookie issue described in §4 step 3 and §5 step 8. It happens because the Worker and frontend are on different registrable domains (e.g. Worker on `*.workers.dev`, frontend on your custom domain or `*.pages.dev`) — desktop browsers tolerate the resulting cross-site cookie, mobile Safari/WebKit does not reliably persist it. The code already handles both cases correctly (`workers/src/lib/cookies.ts` sets `SameSite=None; Secure` when cross-site); the fix is mapping the Worker to a same-site subdomain (e.g. `api.icebrim.com`) per §4 step 3, not a code change. Don't "fix" this by weakening cookie security (e.g. removing `Secure` or `HttpOnly`) — that reintroduces real vulnerabilities without solving the actual cause.
 - **Some images 404 only for older uploads, new uploads are fine:** the affected items' stored `url` (in the `media`, `products`/`product_images`, `blog_posts`, `gallery_images`, or `site_content` — home/banner — records) was generated from an old `WORKER_PUBLIC_URL` value at the time they were uploaded. The underlying file in R2 is still there (uploads never delete the object), only the stored absolute URL is stale. Re-saving the item from the admin panel (re-picking the image) regenerates a correct URL; for a bulk fix see `workers/scripts/repair-media-urls.ts`.
 - **Some images fail with `net::ERR_BLOCKED` in the browser console (not 404), especially in Incognito/private windows or with an ad-blocker installed:** this is the browser or an extension blocking the request client-side, not a server error — check the Network tab's "blocked" reason, or disable extensions to confirm. Media served from a URL path containing a filter-list-flagged word (classically `banner`/`banners`, `ads`, `track`, etc.) can be silently blocked by EasyList-style filter lists regardless of what the file actually is. This codebase's media categories avoid that (`hero-media` instead of `banners` — see `workers/src/routes/media.ts`); if you introduce a new upload category, avoid ad/tracker-adjacent words in it.
+
+---
+
+## 10. What was added in this pass (buyer reviews, branding flash, delivery info, page management)
+
+### 10.1 New/changed database migrations (`0008` through `0012`)
+
+Run `npx wrangler d1 migrations apply icebrim-db --remote` (same command as step 1.2) to apply these — all are purely additive (new tables/columns, or one new seeded row); nothing existing is dropped, renamed, or reset.
+
+| Migration | What it does |
+|---|---|
+| `0008_pages.sql` | Creates the `pages` table (Admin → Pages — see §10.4). |
+| `0009_product_video.sql` | Adds `products.video_url` — an optional product video shown alongside the image gallery on the product page. |
+| `0010_review_multi_image.sql` | Adds `reviews.media_images` — lets a customer attach multiple photos to a review, alongside the existing single photo-or-video slot. |
+| `0011_add_reviews_media_category.sql` | **Bug fix.** Rebuilds the `media` table to allow `'reviews'` as a valid `category` value. Without this, every customer review-media upload failed with a database constraint error (surfaced to the buyer as a generic upload failure) — see §10.2. If you're on a deployment from before this fix, applying this migration is what actually resolves it; the application code alone isn't enough. |
+| `0012_about_page_cms.sql` | Adds `pages.is_system`, and seeds a new "About" page row with the site's existing About copy — see §10.4. |
+
+### 10.2 Fixed: customer review photo/video upload
+
+Buyers can attach photos and a short video to a review (the review form now has upload fields, not just a text/rating form). The root cause of this not working was a database-level check constraint that had never been updated to allow the `reviews` media category (migration `0011`, above) — apply that migration and this works correctly. Confirmed by re-testing the full flow end-to-end: upload an image, upload a video, submit a review referencing both, confirm they're stored and visible in **Admin → Reviews → Edit**.
+
+Uploads go through a new **public, unauthenticated** endpoint, `POST /api/media/review-upload`, separate from the existing admin-only upload endpoint — this is intentional (a buyer submitting a review isn't logged in as admin) and is rate-limited per IP using the same `FORM_RATE_LIMITER` binding already used for other public forms. No new secret or binding is required.
+
+### 10.3 Fixed: branding-color flash on page load
+
+Previously, the site's brand accent color (Admin → Branding) would briefly flash the default `#11534E` on every hard refresh before the saved color loaded, because nothing overrode the CSS default color until React mounted and an API call resolved. Fixed by caching the last-applied accent color to `localStorage` (`icebrim-accent-color`) and reading it synchronously in an inline script in `index.html`, before the page paints or React runs. No new environment variable or setting — this is purely a client-side timing fix. A genuinely unconfigured site (nothing ever saved) still correctly shows `#11534E`, which remains the real first-time default.
+
+### 10.4 New: Page Management (Admin → Pages)
+
+Admins can create, edit, publish/unpublish, and delete standalone pages (e.g. an FAQ or shipping-info page), each with its own title, URL slug, rich-text content, and SEO fields. A page is published directly at its own slug — e.g. a page with slug `faq` is served at `/faq`, not `/pages/faq`. Saving a slug that collides with one of the site's built-in routes (`/products`, `/checkout`, `/about`, etc.) is rejected — see `RESERVED_PAGE_SLUGS` in `workers/src/lib/schemas.ts` if you add a new static route later and need to extend that list.
+
+**The About page** (`/about`) is now one of these pages rather than hardcoded text — migration `0012` seeds it with the site's existing About copy, so nothing changes for visitors until an admin edits it in **Admin → Pages → About**. It's marked as a "built-in" page: fully editable (title, content, SEO, enabled/disabled), but its URL can't be changed and it can't be deleted, since `/about` is a fixed route in the frontend router.
+
+Unpublishing (disabling) any page — built-in or custom — makes its URL show a normal "page not found" response to visitors; re-enabling it restores it immediately, no redeploy needed.
+
+Long page content automatically shows a "Read more" collapse/expand control on the public site once it's genuinely long — short pages display in full with no extra control.
+
+### 10.5 New: Home page section editor (Admin → Home Sections)
+
+Admins can now edit the **How It Works**, **Why Icebrim**, and **About (home preview)** sections of the home page — each can be shown/hidden independently, and How It Works / Why Icebrim's list items (steps/features) can be added, edited, and removed. This was previously only possible by editing code; the Hero/Banner section already had its own editor (Admin → Banner) and is unchanged.
+
+### 10.6 New: Delivery Information (Admin → Delivery Info)
+
+Admins can set the estimated delivery time text shown to customers (e.g. "2–4 working days"), and turn it on or off. The saved value is shown consistently in four places on the public site: the product page, checkout, the order confirmation page, and the order status page (only while an order hasn't shipped yet) — all four read from the same setting, so there's one place to update it. No delivery-time system existed in this codebase before this addition (confirmed by inspection before building it — see the requirement note about not duplicating an existing system).
+
+### 10.7 Fixed: fixed-amount coupon discounts
+
+A coupon configured as a **fixed** discount (as opposed to a **percentage** discount) previously deducted the wrong amount — e.g. a coupon meant to take exactly £5.00 off an order only deducted £0.05, because the value was stored in the wrong currency unit. Percentage coupons were not affected and continue to work as before.
+
+**If you already have fixed-discount coupons saved from before this fix**, check them after deploying:
+```bash
+npx wrangler d1 execute icebrim-db --remote \
+  --command "SELECT code, discount_type, discount_value FROM coupons WHERE discount_type = 'fixed';"
+```
+`discount_value` should be in **pence**, not pounds (a "£5 off" coupon should show `500`). If an existing coupon shows the pounds value instead (e.g. `5`), fix it with `UPDATE coupons SET discount_value = discount_value * 100 WHERE id = '<that coupon's id>';` — check each one individually rather than running this across every fixed coupon, in case any were already stored correctly.

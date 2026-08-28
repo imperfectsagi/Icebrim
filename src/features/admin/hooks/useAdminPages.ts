@@ -28,7 +28,11 @@ export function useAdminPage(id: string | undefined) {
   });
 }
 
-export type PageInput = Omit<CmsPage, 'id' | 'createdAt' | 'updatedAt'>;
+// New pages created through the admin UI are never system pages -- only
+// migration 0012_about_page_cms.sql seeds those -- so isSystem is
+// excluded from what the form can set and always defaults to false
+// server-side for a fresh INSERT (see routes/pages.ts).
+export type PageInput = Omit<CmsPage, 'id' | 'createdAt' | 'updatedAt' | 'isSystem'>;
 
 export function useCreatePage() {
   const qc = useQueryClient();
@@ -39,7 +43,7 @@ export function useCreatePage() {
         : Promise.resolve(
             (() => {
               const now = new Date().toISOString();
-              const created: CmsPage = { ...input, id: `page_${crypto.randomUUID()}`, createdAt: now, updatedAt: now };
+              const created: CmsPage = { ...input, isSystem: false, id: `page_${crypto.randomUUID()}`, createdAt: now, updatedAt: now };
               localPages = [...localPages, created];
               return created;
             })(),

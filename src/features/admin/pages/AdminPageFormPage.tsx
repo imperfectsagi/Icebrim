@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Lock } from 'lucide-react';
 import { AdminPageHeader, AdminCard, FormRow } from '../components/AdminUi';
 import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '../components/RichTextEditor';
@@ -27,6 +28,7 @@ export function AdminPageFormPage() {
   const { data: existing, isLoading } = useAdminPage(isNew ? undefined : id);
   const createPage = useCreatePage();
   const updatePage = useUpdatePage();
+  const isSystem = !!existing?.isSystem;
 
   const {
     register,
@@ -55,18 +57,31 @@ export function AdminPageFormPage() {
   }, [existing, reset]);
 
   const onSubmit = async (values: FormValues) => {
-    const payload = {
-      title: values.title,
-      slug: values.slug,
-      contentHtml: values.contentHtml,
-      status: values.status,
-      seo: { title: values.seoTitle, description: values.seoDescription },
-    };
-
     if (isNew) {
-      await createPage.mutateAsync(payload);
+      // New pages always have a slug (isSystem is only ever true for
+      // existing built-in pages seeded by a migration, never for a
+      // freshly created one), so the full PageInput shape applies here.
+      await createPage.mutateAsync({
+        title: values.title,
+        slug: values.slug,
+        contentHtml: values.contentHtml,
+        status: values.status,
+        seo: { title: values.seoTitle, description: values.seoDescription },
+      });
     } else if (id) {
-      await updatePage.mutateAsync({ id, ...payload });
+      await updatePage.mutateAsync({
+        id,
+        title: values.title,
+        // Built-in pages (About) have a fixed route -- omit slug from
+        // the update entirely rather than resend the unchanged value,
+        // so there's no ambiguity server-side about whether this is an
+        // attempted change (see the is_system checks in
+        // workers/src/routes/pages.ts).
+        ...(isSystem ? {} : { slug: values.slug }),
+        contentHtml: values.contentHtml,
+        status: values.status,
+        seo: { title: values.seoTitle, description: values.seoDescription },
+      });
     }
     navigate('/admin/pages');
   };
@@ -75,7 +90,7 @@ export function AdminPageFormPage() {
 
   return (
     <div>
-      <AdminPageHeader title={isNew ? 'Add Page' : 'Edit Page'} />
+      <AdminPageHeader title={isNew ? 'Add Page' : isSystem ? `Edit ${existing?.title ?? 'Page'} (built-in)` : 'Edit Page'} />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6 max-w-3xl">
         <AdminCard className="space-y-4">
@@ -89,13 +104,22 @@ export function AdminPageFormPage() {
               }}
             />
           </FormRow>
-          <FormRow label="URL slug" hint={`icebrim.com/pages/${watch('slug') || '...'}`} error={errors.slug?.message}>
-            <input className="form-input" {...register('slug')} />
-          </FormRow>
-          <FormRow label="Status">
+          {isSystem ? (
+            <FormRow label="URL" hint="This is a built-in page -- its URL is fixed and can't be changed.">
+              <div className="form-input flex items-center gap-2 bg-[var(--color-surface)] text-[var(--color-ink-soft)]">
+                <Lock size={13} aria-hidden="true" />
+                icebrim.com/{watch('slug')}
+              </div>
+            </FormRow>
+          ) : (
+            <FormRow label="URL slug" hint={`icebrim.com/${watch('slug') || '...'}`} error={errors.slug?.message}>
+              <input className="form-input" {...register('slug')} />
+            </FormRow>
+          )}
+          <FormRow label="Enabled" hint="Disabled pages show a not-found page to visitors instead of their content.">
             <select className="form-input" {...register('status')}>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
+              <option value="draft">Disabled</option>
+              <option value="published">Enabled</option>
             </select>
           </FormRow>
         </AdminCard>
@@ -105,7 +129,9 @@ export function AdminPageFormPage() {
           <Controller
             control={control}
             name="contentHtml"
-            render={({ field }) => <RichTextEditor value={field.value} onChange={field.onChange} />}
+            render={({ field }) => (
+              <RichTextEditor value={field.value} onChange={field.onChange} ariaLabel={`${watch('title') || 'Page'} content`} />
+            )}
           />
         </AdminCard>
 

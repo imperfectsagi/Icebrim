@@ -9,6 +9,8 @@ import { AdminBlogsPage } from './pages/AdminBlogsPage';
 import { AdminBlogFormPage } from './pages/AdminBlogFormPage';
 import { AdminPagesPage } from './pages/AdminPagesPage';
 import { AdminPageFormPage } from './pages/AdminPageFormPage';
+import { AdminDeliveryPage } from './pages/AdminDeliveryPage';
+import { AdminHomeSectionsPage } from './pages/AdminHomeSectionsPage';
 import { AdminReviewsPage } from './pages/AdminReviewsPage';
 import { AdminMediaPage } from './pages/AdminMediaPage';
 import { AdminGalleryPage } from './pages/AdminGalleryPage';
@@ -53,6 +55,7 @@ export default function AdminApp() {
           <Route path="media" element={<AdminMediaPage />} />
           <Route path="gallery" element={<AdminGalleryPage />} />
           <Route path="banner" element={<AdminBannerPage />} />
+          <Route path="home-sections" element={<AdminHomeSectionsPage />} />
           <Route path="policies" element={<AdminPoliciesPage />} />
           <Route path="policies/:key" element={<AdminPolicyFormPage />} />
           <Route path="coupons" element={<AdminCouponsPage />} />
@@ -61,6 +64,7 @@ export default function AdminApp() {
           <Route path="settings/company" element={<AdminCompanySettingsPage />} />
           <Route path="settings/branding" element={<AdminBrandingPage />} />
           <Route path="settings/promo-banner" element={<AdminPromoBannerPage />} />
+          <Route path="settings/delivery-info" element={<AdminDeliveryPage />} />
           <Route path="settings/seo" element={<AdminSeoSettingsPage />} />
           <Route path="settings/system" element={<AdminSystemSettingsPage />} />
           <Route path="messages" element={<AdminMessagesPage />} />

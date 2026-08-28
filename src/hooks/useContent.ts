@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, hasLiveApi } from '@/lib/api-client';
-import type { HomePageContent, CompanySettings, Product, BlogPost, Review, GalleryImage, PolicyPageContent, PolicyPageKey, CmsPage, PromoBannerContent } from '@/types/cms';
+import type { HomePageContent, CompanySettings, Product, BlogPost, Review, GalleryImage, PolicyPageContent, PolicyPageKey, CmsPage, PromoBannerContent, DeliveryInfoContent } from '@/types/cms';
 import { homeContent } from '@/data/home';
 import { companySettings } from '@/data/company';
 import { products } from '@/data/products';
@@ -110,6 +110,16 @@ export function usePromoBanner() {
         ? api.get('/api/settings/promo-banner')
         : Promise.resolve({ enabled: false, text: '', linkType: 'none', linkSlug: '' }),
     staleTime: 30 * 1000,
+  });
+}
+
+/** Public read of the admin-configured delivery estimate. See DeliveryInfo.tsx. */
+export function useDeliveryInfo() {
+  return useQuery<DeliveryInfoContent>({
+    queryKey: ['settings', 'delivery-info'],
+    queryFn: () =>
+      hasLiveApi ? api.get('/api/settings/delivery-info') : Promise.resolve({ enabled: false, text: '' }),
+    staleTime: 60 * 1000,
   });
 }
 

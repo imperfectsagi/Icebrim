@@ -7,6 +7,7 @@ import { Package, Truck, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Container } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { SeoHead } from '@/components/common/SeoHead';
+import { DeliveryInfo } from '@/components/common/DeliveryInfo';
 import { api, ApiError } from '@/lib/api-client';
 import { formatPrice, formatDate } from '@/lib/utils';
 import type { Order, OrderStatus } from '@/types/cms';
@@ -116,6 +117,10 @@ export default function OrderStatusPage() {
               <p className="text-sm text-[var(--color-ink-soft)] mb-4">
                 Order {order.orderNumber} · placed {formatDate(order.createdAt)}
               </p>
+
+              {!['shipped', 'delivered', 'cancelled', 'refunded'].includes(order.status) && (
+                <DeliveryInfo className="mb-4" />
+              )}
 
               {order.tracking && (
                 <p className="text-sm mb-4">

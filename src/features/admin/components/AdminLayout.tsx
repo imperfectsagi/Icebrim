@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, FolderTree, FileText, Star, Image,
   PanelTop, Settings, Users, Search, Mail, BarChart3, Cog, LogOut, Palette,
-  Images as GalleryIcon, ShoppingBag, Menu, X, ScrollText, Tag, Files, Megaphone,
+  Images as GalleryIcon, ShoppingBag, Menu, X, ScrollText, Tag, Files, Megaphone, Truck, Layers,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useCompanySettings } from '@/hooks/useContent';
@@ -34,6 +34,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
       { label: 'Media Library', href: '/admin/media', icon: Image },
       { label: 'Gallery', href: '/admin/gallery', icon: GalleryIcon },
       { label: 'Banner', href: '/admin/banner', icon: PanelTop },
+      { label: 'Home Sections', href: '/admin/home-sections', icon: Layers },
       { label: 'Policy Pages', href: '/admin/policies', icon: ScrollText },
     ],
   },
@@ -50,6 +51,7 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
       { label: 'Company Settings', href: '/admin/settings/company', icon: Settings },
       { label: 'Branding', href: '/admin/settings/branding', icon: Palette },
       { label: 'Promo Banner', href: '/admin/settings/promo-banner', icon: Megaphone },
+      { label: 'Delivery Info', href: '/admin/settings/delivery-info', icon: Truck },
       { label: 'SEO Settings', href: '/admin/settings/seo', icon: Search },
       { label: 'Contact Messages', href: '/admin/messages', icon: Mail },
       { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },

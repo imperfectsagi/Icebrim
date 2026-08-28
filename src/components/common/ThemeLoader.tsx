@@ -4,6 +4,11 @@ import { deriveShades } from '@/lib/color';
 
 const SITE_URL = (import.meta.env.VITE_SITE_URL ?? 'https://icebrim.com').replace(/\/+$/, '');
 
+// Same localStorage key the inline pre-hydration script in index.html
+// reads synchronously before first paint. Keep these two in sync -- see
+// the comment in index.html for the full flash-fix explanation.
+const ACCENT_COLOR_CACHE_KEY = 'icebrim-accent-color';
+
 /**
  * Applies site-wide settings that must be read from the CMS at runtime
  * (rather than baked into index.html at build time) to the document:
@@ -24,6 +29,14 @@ export function ThemeLoader() {
   // overriding those three variables here re-colors the whole site --
   // public pages and admin panel alike -- from one saved value, with no
   // per-component changes required.
+  //
+  // Also caches the resolved color to localStorage. This is what lets
+  // index.html's inline pre-hydration script apply the *previously
+  // known* color synchronously on the very next page load, before this
+  // effect (or even React) has run -- see index.html for the full
+  // writeup of the flash this fixes. Without this cache write, the
+  // flash would return on every load because there would be nothing for
+  // that script to read.
   useEffect(() => {
     if (!theme?.accentColor) return;
     const root = document.documentElement;
@@ -31,6 +44,13 @@ export function ThemeLoader() {
     root.style.setProperty('--color-coral', base);
     root.style.setProperty('--color-coral-deep', deep);
     root.style.setProperty('--color-coral-tint', tint);
+    try {
+      localStorage.setItem(ACCENT_COLOR_CACHE_KEY, theme.accentColor);
+    } catch {
+      // localStorage unavailable (private mode, storage full, etc.) --
+      // the color is still applied correctly for this page view via the
+      // setProperty calls above, it just won't be cached for next time.
+    }
   }, [theme?.accentColor]);
 
   // Favicon: index.html ships a static fallback <link rel="icon"> so the

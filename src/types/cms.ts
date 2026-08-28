@@ -178,6 +178,8 @@ export interface CmsPage {
   contentHtml: string;
   status: 'draft' | 'published';
   seo: SeoMeta;
+  /** True for built-in pages seeded by a migration (currently only "about") -- editable, but not deletable and its slug can't be changed, since a fixed route in src/router.tsx points at it. See migration 0012_about_page_cms.sql. */
+  isSystem: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -188,6 +190,18 @@ export interface PromoBannerContent {
   text: string;
   linkType: 'none' | 'product' | 'page';
   linkSlug: string;
+}
+
+/**
+ * Estimated delivery time shown to customers (e.g. "2-4 working days"),
+ * admin-editable without a redeploy. See workers/src/routes/admin-content.ts
+ * (site_content key "delivery_info") and src/components/common/DeliveryInfo.tsx,
+ * the single shared component that reads and renders this everywhere it's
+ * displayed (product page, checkout, order confirmation/status).
+ */
+export interface DeliveryInfoContent {
+  enabled: boolean;
+  text: string;
 }
 
 /* -------------------------------- Products -------------------------------- */

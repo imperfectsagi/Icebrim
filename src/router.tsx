@@ -18,6 +18,7 @@ const OrderStatusPage = lazy(() => import('@/pages/OrderStatusPage'));
 const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
 const CookiePolicyPage = lazy(() => import('@/pages/CookiePolicyPage'));
+const ReturnRefundPolicyPage = lazy(() => import('@/pages/ReturnRefundPolicyPage'));
 const CustomPage = lazy(() => import('@/pages/CustomPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const AdminApp = lazy(() => import('@/features/admin/AdminApp'));
@@ -68,6 +69,10 @@ const router = createBrowserRouter([
       {
         path: 'cookie-policy',
         element: withSuspense(<CookiePolicyPage />),
+      },
+      {
+        path: 'return-refund-policy',
+        element: withSuspense(<ReturnRefundPolicyPage />),
       },
       // Admin-managed custom pages (Admin -> Pages) resolve directly by
       // their own slug -- e.g. a page with slug "faq" is served at

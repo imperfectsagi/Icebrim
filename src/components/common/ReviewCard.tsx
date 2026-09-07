@@ -6,7 +6,7 @@ import type { Review } from '@/types/cms';
 export function ReviewCard({ review }: { review: Review }) {
   const mediaImages = review.mediaImages ?? [];
   return (
-    <Card className="p-6">
+    <Card className="p-6 h-full flex flex-col">
       <StarRating value={review.rating} className="mb-4" />
       <h3 className="font-semibold mb-2">{review.title}</h3>
       <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed mb-4">{review.body}</p>
@@ -32,7 +32,7 @@ export function ReviewCard({ review }: { review: Review }) {
           ))}
         </div>
       )}
-      <p className="text-xs text-[var(--color-ink-soft)]">
+      <p className="text-xs text-[var(--color-ink-soft)] mt-auto pt-2">
         {review.authorName}
         {review.location ? ` · ${review.location}` : ''} · {formatDate(review.createdAt)}
       </p>

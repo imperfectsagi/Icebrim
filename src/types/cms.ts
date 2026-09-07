@@ -157,7 +157,7 @@ export interface CompanySettings {
 /* --------------------------------- Policy --------------------------------- */
 
 /** Fixed set -- see routes/admin-content.ts / routes/content.ts POLICY_KEYS. */
-export type PolicyPageKey = 'policy_privacy' | 'policy_cookie' | 'policy_terms';
+export type PolicyPageKey = 'policy_privacy' | 'policy_cookie' | 'policy_terms' | 'policy_refund';
 
 export interface PolicyPageContent {
   title: string;

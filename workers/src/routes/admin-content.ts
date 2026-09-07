@@ -102,22 +102,23 @@ adminSettings.put('/seo', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// Policy pages (Privacy Policy, Cookie Policy, Terms & Conditions) --
-// same site_content key/value pattern as home/company above, so the admin
-// can manage them without a code deployment for every text change. Content
-// is sanitized server-side with the same allowlist sanitizer used for blog
-// posts (see lib/sanitize-html.ts) since it's rendered with
-// dangerouslySetInnerHTML on the public site (see src/components/common/
-// RichText.tsx, which also re-sanitizes client-side as defense in depth).
+// Policy pages (Privacy Policy, Cookie Policy, Terms & Conditions, Return &
+// Refund Policy) -- same site_content key/value pattern as home/company
+// above, so the admin can manage them without a code deployment for every
+// text change. Content is sanitized server-side with the same allowlist
+// sanitizer used for blog posts (see lib/sanitize-html.ts) since it's
+// rendered with dangerouslySetInnerHTML on the public site (see
+// src/components/common/RichText.tsx, which also re-sanitizes client-side
+// as defense in depth).
 //
-// Keyed as 'policy_privacy' / 'policy_cookie' / 'policy_terms' in
-// site_content -- three fixed keys (not a generic "any slug" CMS) because
-// there are exactly three policy pages the frontend routes to
-// (PrivacyPolicyPage / CookiePolicyPage / TermsPage, see src/router.tsx),
-// and an open-ended slug system would need its own routing/404 handling
-// this app doesn't have.
+// Keyed as 'policy_privacy' / 'policy_cookie' / 'policy_terms' /
+// 'policy_refund' in site_content -- four fixed keys (not a generic "any
+// slug" CMS) because there are exactly four policy pages the frontend
+// routes to (PrivacyPolicyPage / CookiePolicyPage / TermsPage /
+// ReturnRefundPolicyPage, see src/router.tsx), and an open-ended slug
+// system would need its own routing/404 handling this app doesn't have.
 // ---------------------------------------------------------------------------
-const POLICY_KEYS = ['policy_privacy', 'policy_cookie', 'policy_terms'] as const;
+const POLICY_KEYS = ['policy_privacy', 'policy_cookie', 'policy_terms', 'policy_refund'] as const;
 type PolicyKey = (typeof POLICY_KEYS)[number];
 
 function isPolicyKey(value: string): value is PolicyKey {

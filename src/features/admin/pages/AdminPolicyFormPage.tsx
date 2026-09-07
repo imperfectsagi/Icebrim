@@ -10,11 +10,12 @@ import { RichTextEditor } from '../components/RichTextEditor';
 import { useAdminPolicyPage, useUpdatePolicyPage, useDeletePolicyPage } from '../hooks/useAdminPolicy';
 import type { PolicyPageKey } from '@/types/cms';
 
-const VALID_KEYS: PolicyPageKey[] = ['policy_privacy', 'policy_cookie', 'policy_terms'];
+const VALID_KEYS: PolicyPageKey[] = ['policy_privacy', 'policy_cookie', 'policy_terms', 'policy_refund'];
 const LABELS: Record<PolicyPageKey, string> = {
   policy_privacy: 'Privacy Policy',
   policy_cookie: 'Cookie Policy',
   policy_terms: 'Terms & Conditions',
+  policy_refund: 'Return & Refund Policy',
 };
 
 const schema = z.object({

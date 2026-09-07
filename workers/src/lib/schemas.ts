@@ -265,7 +265,7 @@ export const policyPageWriteSchema = z.object({
 export const RESERVED_PAGE_SLUGS = [
   'about', 'products', 'blog', 'contact', 'checkout',
   'order-confirmation', 'order-status', 'privacy-policy', 'terms',
-  'cookie-policy', 'admin', 'pages', 'api', 'media',
+  'cookie-policy', 'return-refund-policy', 'admin', 'pages', 'api', 'media',
 ] as const;
 
 export const pageWriteSchema = z.object({

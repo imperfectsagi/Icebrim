@@ -29,10 +29,12 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminSystemSettingsPage } from './pages/AdminSystemSettingsPage';
 import { RequireAuth } from './auth/RequireAuth';
 import { AuthProvider } from './auth/AuthContext';
+import { ScrollToTop } from '@/components/common/ScrollToTop';
 
 export default function AdminApp() {
   return (
     <AuthProvider>
+      <ScrollToTop />
       <Routes>
         <Route path="login" element={<AdminLoginPage />} />
         <Route

@@ -68,4 +68,21 @@ export const policyPages: Record<PolicyPageKey, PolicyPageContent> = {
       <p>These terms are governed by the laws of England and Wales.</p>
     `.trim(),
   },
+  policy_refund: {
+    title: 'Return & Refund Policy',
+    updatedDateLabel: '1 August 2026',
+    contentHtml: `
+      <p>We want you to love your Icebrim order. If something isn't right, here's how returns and refunds work.</p>
+      <h2>Returns</h2>
+      <p>You can return unused items in their original packaging within 30 days of delivery. To start a return, contact us via our Contact page with your order number and the item(s) you'd like to return.</p>
+      <h2>Refunds</h2>
+      <p>Once we receive and inspect your return, we'll notify you of the outcome. Approved refunds are issued to your original payment method within 5-10 business days.</p>
+      <h2>Damaged or faulty items</h2>
+      <p>If your order arrives damaged or faulty, please contact us within 48 hours of delivery with photos of the issue so we can arrange a replacement or refund at no extra cost to you.</p>
+      <h2>Non-returnable items</h2>
+      <p>For hygiene reasons, certain items may not be eligible for return once opened or used. Any such exclusions will be noted on the product page.</p>
+      <h2>Contact us</h2>
+      <p>Questions about a return or refund? Get in touch via our Contact page and we'll be happy to help.</p>
+    `.trim(),
+  },
 };

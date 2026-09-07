@@ -27,12 +27,12 @@ content.get('/company', async (c) => {
   return c.json(value);
 });
 
-// Policy pages (Privacy Policy, Cookie Policy, Terms & Conditions) --
-// public, unauthenticated read of admin-edited content. See
-// routes/admin-content.ts for the write side and the fixed key allowlist
-// (this route uses the same allowlist so an arbitrary :key can't probe
-// unrelated site_content rows, e.g. 'theme' or 'system_settings').
-const POLICY_KEYS = ['policy_privacy', 'policy_cookie', 'policy_terms'] as const;
+// Policy pages (Privacy Policy, Cookie Policy, Terms & Conditions, Return &
+// Refund Policy) -- public, unauthenticated read of admin-edited content.
+// See routes/admin-content.ts for the write side and the fixed key
+// allowlist (this route uses the same allowlist so an arbitrary :key can't
+// probe unrelated site_content rows, e.g. 'theme' or 'system_settings').
+const POLICY_KEYS = ['policy_privacy', 'policy_cookie', 'policy_terms', 'policy_refund'] as const;
 
 content.get('/policy/:key', async (c) => {
   const key = c.req.param('key');

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { InstagramIcon, FacebookIcon } from '@/components/ui/SocialIcons';
+import { InstagramIcon, FacebookIcon, TikTokIcon } from '@/components/ui/SocialIcons';
 import { Container } from '@/components/ui/primitives';
 import { useCompanySettings, useProducts } from '@/hooks/useContent';
 
@@ -16,6 +16,7 @@ const policyLinks = [
   { label: 'Privacy Policy', href: '/privacy-policy' },
   { label: 'Cookie Policy', href: '/cookie-policy' },
   { label: 'Terms & Conditions', href: '/terms' },
+  { label: 'Return & Refund Policy', href: '/return-refund-policy' },
 ];
 
 export function Footer() {
@@ -64,6 +65,17 @@ export function Footer() {
                   className="h-9 w-9 flex items-center justify-center rounded-full bg-white border border-[var(--color-line)] hover:border-[var(--color-coral)] hover:text-[var(--color-coral-deep)] transition-colors"
                 >
                   <FacebookIcon width={16} height={16} />
+                </a>
+              )}
+              {company?.social.tiktok && (
+                <a
+                  href={company.social.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Icebrim on TikTok"
+                  className="h-9 w-9 flex items-center justify-center rounded-full bg-white border border-[var(--color-line)] hover:border-[var(--color-coral)] hover:text-[var(--color-coral-deep)] transition-colors"
+                >
+                  <TikTokIcon width={16} height={16} />
                 </a>
               )}
             </div>

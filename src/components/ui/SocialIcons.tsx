@@ -17,3 +17,12 @@ export function FacebookIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function TikTokIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M16.5 3v9.6a3.9 3.9 0 1 1-3.9-3.9c.3 0 .6.02.9.07" />
+      <path d="M16.5 3c.2 2.2 1.9 3.9 4 4.1" />
+    </svg>
+  );
+}

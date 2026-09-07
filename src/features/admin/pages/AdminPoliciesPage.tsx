@@ -6,6 +6,7 @@ const POLICY_PAGES: { key: string; label: string; description: string }[] = [
   { key: 'policy_privacy', label: 'Privacy Policy', description: 'How Icebrim collects, uses, and protects customer data.' },
   { key: 'policy_cookie', label: 'Cookie Policy', description: 'Which cookies the site uses and how visitors can manage them.' },
   { key: 'policy_terms', label: 'Terms & Conditions', description: 'The terms that govern orders, payment, shipping, and returns.' },
+  { key: 'policy_refund', label: 'Return & Refund Policy', description: 'How returns, exchanges, and refunds work for customer orders.' },
 ];
 
 export function AdminPoliciesPage() {
@@ -13,7 +14,7 @@ export function AdminPoliciesPage() {
     <div>
       <AdminPageHeader
         title="Policy Pages"
-        description="Edit the content shown on the public Privacy Policy, Cookie Policy, and Terms & Conditions pages."
+        description="Edit the content shown on the public Privacy Policy, Cookie Policy, Terms & Conditions, and Return & Refund Policy pages."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

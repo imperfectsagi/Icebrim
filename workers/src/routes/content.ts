@@ -1,30 +1,29 @@
 import { Hono } from 'hono';
 import type { Env } from '../lib/env';
+import { getSiteContentWithMeta, applyRevalidatingCache, notModified } from '../lib/site-content';
 
 const content = new Hono<{ Bindings: Env }>();
 
-async function getSiteContent(db: D1Database, key: string): Promise<unknown | null> {
-  const row = await db.prepare('SELECT value FROM site_content WHERE key = ?').bind(key).first<{ value: string }>();
-  if (!row) return null;
-  try {
-    return JSON.parse(row.value);
-  } catch {
-    return null;
-  }
-}
-
 content.get('/home', async (c) => {
-  const value = await getSiteContent(c.env.DB, 'home');
-  if (!value) return c.json({ error: 'Home content not found. Has it been seeded?' }, 404);
-  c.header('Cache-Control', 'public, max-age=60');
-  return c.json(value);
+  const row = await getSiteContentWithMeta(c.env.DB, 'home');
+  if (!row) return c.json({ error: 'Home content not found. Has it been seeded?' }, 404);
+  // Carries the hero banner (image/video/mobile focal point) -- see
+  // lib/site-content.ts's applyRevalidatingCache for why this is
+  // revalidate-on-load rather than the previous fixed max-age=60 (Fix:
+  // old content flash on refresh).
+  const notModifiedResponse = notModified(c, row.updatedAt);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, row.updatedAt);
+  return c.json(row.value);
 });
 
 content.get('/company', async (c) => {
-  const value = await getSiteContent(c.env.DB, 'company');
-  if (!value) return c.json({ error: 'Company settings not found. Has it been seeded?' }, 404);
-  c.header('Cache-Control', 'public, max-age=300');
-  return c.json(value);
+  const row = await getSiteContentWithMeta(c.env.DB, 'company');
+  if (!row) return c.json({ error: 'Company settings not found. Has it been seeded?' }, 404);
+  const notModifiedResponse = notModified(c, row.updatedAt);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, row.updatedAt);
+  return c.json(row.value);
 });
 
 // Policy pages (Privacy Policy, Cookie Policy, Terms & Conditions, Return &
@@ -39,10 +38,12 @@ content.get('/policy/:key', async (c) => {
   if (!(POLICY_KEYS as readonly string[]).includes(key)) {
     return c.json({ error: 'Unknown policy page' }, 404);
   }
-  const value = await getSiteContent(c.env.DB, key);
-  if (!value) return c.json({ error: 'Policy content not found. Has it been seeded?' }, 404);
-  c.header('Cache-Control', 'public, max-age=60');
-  return c.json(value);
+  const row = await getSiteContentWithMeta(c.env.DB, key);
+  if (!row) return c.json({ error: 'Policy content not found. Has it been seeded?' }, 404);
+  const notModifiedResponse = notModified(c, row.updatedAt);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, row.updatedAt);
+  return c.json(row.value);
 });
 
 export default content;

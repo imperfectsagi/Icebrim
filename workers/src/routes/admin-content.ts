@@ -2,32 +2,21 @@ import { Hono } from 'hono';
 import type { Env } from '../lib/env';
 import type { AuthedVariables } from '../middleware/auth';
 import { requireAuth, requireAdminRole } from '../middleware/auth';
-import { companySettingsWriteSchema, policyPageWriteSchema, promoBannerWriteSchema, deliveryInfoWriteSchema } from '../lib/schemas';
+import {
+  companySettingsWriteSchema,
+  policyPageWriteSchema,
+  promoBannerWriteSchema,
+  deliveryInfoWriteSchema,
+  popupOfferWriteSchema,
+} from '../lib/schemas';
 import { sanitizeBlogHtml } from '../lib/sanitize-html';
 import { logAuditEvent, getClientIp } from '../lib/login-security';
+import { toDecimal } from '../lib/money';
+import type { CouponRow } from '../lib/coupons';
+import { getSiteContentRaw, getSiteContentWithMeta, upsertSiteContent, applyRevalidatingCache, notModified } from '../lib/site-content';
 
 export const adminContent = new Hono<{ Bindings: Env; Variables: AuthedVariables }>();
 adminContent.use('*', requireAuth);
-
-async function upsertSiteContent(db: D1Database, key: string, value: unknown, userId: string): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO site_content (key, value, updated_at, updated_by) VALUES (?, ?, datetime('now'), ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now'), updated_by = excluded.updated_by`,
-    )
-    .bind(key, JSON.stringify(value), userId)
-    .run();
-}
-
-async function getSiteContentRaw(db: D1Database, key: string): Promise<unknown | null> {
-  const row = await db.prepare('SELECT value FROM site_content WHERE key = ?').bind(key).first<{ value: string }>();
-  if (!row) return null;
-  try {
-    return JSON.parse(row.value);
-  } catch {
-    return null;
-  }
-}
 
 // Home page content: admin reads/writes the full JSON blob. Deep
 // per-field Zod validation of every nested home-page section would add
@@ -276,6 +265,82 @@ adminContent.put('/delivery-info', async (c) => {
   return c.json(parsed.data);
 });
 
+// ---------------------------------------------------------------------------
+// Customer offer popup -- same site_content key/value pattern as
+// promo_banner/delivery_info above (site_content key "popup_offer"). See
+// migration 0013_popup_offer_emails.sql for why only this settings
+// document lives here while the submitted emails get their own table,
+// and lib/schemas.ts's popupOfferWriteSchema for why couponId (not a
+// code snapshot) is what's stored -- it always resolves against the
+// live coupon record on read, so admin changes to that coupon (price,
+// active flag, expiry) are reflected immediately without a second edit
+// here. Admin-only (not requireAdminRole) for the same reason
+// promo-banner/delivery-info are: editors already manage comparable
+// site-wide content elsewhere in this file.
+// ---------------------------------------------------------------------------
+const POPUP_OFFER_DEFAULT = { enabled: false, heading: '', subheading: '', couponId: null as string | null };
+
+adminContent.get('/popup-offer', async (c) => {
+  const value = await getSiteContentRaw(c.env.DB, 'popup_offer');
+  return c.json(value ?? POPUP_OFFER_DEFAULT);
+});
+
+adminContent.put('/popup-offer', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = popupOfferWriteSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Invalid popup settings' }, 400);
+  const input = parsed.data;
+
+  // Validate the referenced coupon actually exists before saving --
+  // same "don't let the admin panel save a dangling reference" rule
+  // applied to linkSlug on promo_banner, but enforced here (unlike
+  // linkSlug) because a coupon id is a real foreign-key-shaped
+  // reference into a table this same admin manages, not free text.
+  if (input.couponId) {
+    const coupon = await c.env.DB.prepare('SELECT id FROM coupons WHERE id = ?').bind(input.couponId).first();
+    if (!coupon) return c.json({ error: 'Selected coupon could not be found' }, 400);
+  }
+
+  await upsertSiteContent(c.env.DB, 'popup_offer', input, c.get('userId'));
+  await logAuditEvent(c.env.DB, {
+    userId: c.get('userId'),
+    action: 'popup_offer_updated',
+    ip: getClientIp(c.req.raw.headers),
+    userAgent: c.req.header('User-Agent') ?? null,
+    metadata: { enabled: input.enabled, couponId: input.couponId },
+  });
+
+  return c.json(input);
+});
+
+// Submitted popup emails -- read-only list for the admin panel (see
+// routes/popup-emails.ts for the public submit endpoint that writes
+// these rows). Shows exactly the three fields requirement #2 asks for:
+// email, submission time, and the coupon shown at that time (already
+// captured as a snapshot at submit time -- see migration
+// 0013_popup_offer_emails.sql -- so this is a plain read with no join
+// needed, and stays correct even after a coupon is later deleted).
+interface PopupOfferEmailRow {
+  id: string;
+  email: string;
+  coupon_code: string | null;
+  created_at: string;
+}
+
+adminContent.get('/popup-offer/emails', async (c) => {
+  const { results } = await c.env.DB.prepare(
+    'SELECT id, email, coupon_code, created_at FROM popup_offer_emails ORDER BY created_at DESC',
+  ).all<PopupOfferEmailRow>();
+  return c.json(
+    results.map((r) => ({
+      id: r.id,
+      email: r.email,
+      couponCode: r.coupon_code,
+      createdAt: r.created_at,
+    })),
+  );
+});
+
 adminSettings.get('/system', async (c) => {
   const value = await getSiteContentRaw(c.env.DB, 'system_settings');
   return c.json(value ?? { maintenanceMode: false, maintenanceMessage: '', sessionTimeoutMinutes: 15 });
@@ -318,16 +383,25 @@ publicSettings.get('/maintenance', async (c) => {
 });
 
 publicSettings.get('/theme', async (c) => {
-  const value = (await getSiteContentRaw(c.env.DB, 'theme')) as { accentColor?: string } | null;
-  c.header('Cache-Control', 'public, max-age=300');
+  const row = await getSiteContentWithMeta(c.env.DB, 'theme');
+  const value = row?.value as { accentColor?: string } | undefined;
+  // See lib/site-content.ts's applyRevalidatingCache -- this replaces the
+  // previous fixed `public, max-age=300`, which is exactly the "color
+  // theme" case named by the stale-content-flash bug report.
+  const notModifiedResponse = notModified(c, row?.updatedAt);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, row?.updatedAt);
   return c.json({ accentColor: value?.accentColor ?? '#11534E' });
 });
 
 publicSettings.get('/promo-banner', async (c) => {
-  const value = (await getSiteContentRaw(c.env.DB, 'promo_banner')) as
+  const row = await getSiteContentWithMeta(c.env.DB, 'promo_banner');
+  const value = row?.value as
     | { enabled?: boolean; text?: string; linkType?: 'none' | 'product' | 'page'; linkSlug?: string }
-    | null;
-  c.header('Cache-Control', 'public, max-age=30');
+    | undefined;
+  const notModifiedResponse = notModified(c, row?.updatedAt);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, row?.updatedAt);
   return c.json({
     enabled: value?.enabled ?? false,
     text: value?.text ?? '',
@@ -337,10 +411,84 @@ publicSettings.get('/promo-banner', async (c) => {
 });
 
 publicSettings.get('/delivery-info', async (c) => {
-  const value = (await getSiteContentRaw(c.env.DB, 'delivery_info')) as { enabled?: boolean; text?: string } | null;
-  c.header('Cache-Control', 'public, max-age=60');
+  const row = await getSiteContentWithMeta(c.env.DB, 'delivery_info');
+  const value = row?.value as { enabled?: boolean; text?: string } | undefined;
+  const notModifiedResponse = notModified(c, row?.updatedAt);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, row?.updatedAt);
   return c.json({
     enabled: value?.enabled ?? false,
     text: value?.text ?? '',
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Public: the customer offer popup's current configuration, with its
+// linked coupon resolved into the shape the popup actually displays
+// (code, discount type/value, minimum order) rather than exposing the
+// raw couponId. Requirement #4 (checkout coupon offer) reads this same
+// endpoint, which is what keeps "only show active and valid promotional
+// coupons" true in exactly one place: if the linked coupon has since
+// been deactivated, deleted, or expired, `coupon` below comes back null
+// and BOTH the popup and the checkout display simply show nothing for
+// it -- see lib/coupons.ts's validateCoupon for why expiry/active/usage
+// are checked the same way checkout itself checks them, so this can
+// never disagree with what /orders/validate-coupon would actually accept.
+//
+// The ETag this endpoint revalidates against combines the popup_offer
+// row's own updated_at with the linked coupon's updated_at (when one is
+// linked) -- the popup's *displayed offer* can go stale from either
+// side changing (the admin edits the popup text, OR edits/deactivates
+// the coupon it points at without touching the popup row itself), so
+// both have to be part of what invalidates the cached response. See
+// lib/site-content.ts's applyRevalidatingCache for why this is
+// revalidate-on-load rather than a fixed max-age.
+// ---------------------------------------------------------------------------
+publicSettings.get('/popup-offer', async (c) => {
+  const row = await getSiteContentWithMeta(c.env.DB, 'popup_offer');
+  const value = row?.value as
+    | { enabled?: boolean; heading?: string; subheading?: string; couponId?: string | null }
+    | undefined;
+
+  const base = {
+    enabled: value?.enabled ?? false,
+    heading: value?.heading ?? '',
+    subheading: value?.subheading ?? '',
+  };
+
+  if (!base.enabled || !value?.couponId) {
+    const notModifiedResponse = notModified(c, row?.updatedAt);
+    if (notModifiedResponse) return notModifiedResponse;
+    applyRevalidatingCache(c, row?.updatedAt);
+    return c.json({ ...base, coupon: null });
+  }
+
+  const coupon = await c.env.DB.prepare('SELECT * FROM coupons WHERE id = ?').bind(value.couponId).first<
+    CouponRow & { updated_at: string }
+  >();
+
+  const combinedVersion = coupon ? `${row?.updatedAt ?? ''}:${coupon.updated_at}` : row?.updatedAt;
+  const notModifiedResponse = notModified(c, combinedVersion);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, combinedVersion);
+
+  const isCurrentlyValid =
+    !!coupon &&
+    !!coupon.active &&
+    (!coupon.expires_at || new Date(coupon.expires_at).getTime() >= Date.now()) &&
+    (coupon.usage_limit === null || coupon.used_count < coupon.usage_limit);
+
+  if (!isCurrentlyValid) {
+    return c.json({ ...base, coupon: null });
+  }
+
+  return c.json({
+    ...base,
+    coupon: {
+      code: coupon!.code,
+      discountType: coupon!.discount_type,
+      discountValue: coupon!.discount_type === 'fixed' ? toDecimal(coupon!.discount_value) : coupon!.discount_value,
+      minOrderSubtotal: coupon!.min_order_subtotal_minor === null ? null : toDecimal(coupon!.min_order_subtotal_minor),
+    },
   });
 });

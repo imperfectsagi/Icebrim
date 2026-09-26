@@ -119,12 +119,15 @@ The `public/_redirects` file is already configured for SPA client-side routing.
 
 ## Architecture notes
 
-- **CMS content** (home page sections, company settings) is stored as JSON blobs in D1's `site_content` table, keyed by section. This keeps adding new editable fields simple with no migration needed, while structured entities like products, blog posts, and reviews get proper relational tables.
+- **CMS content** (home page sections, company settings) is stored as JSON blobs in D1's `site_content` table, keyed by section. This keeps adding new editable fields simple with no migration needed, while structured entities like products, blog posts, and reviews get proper relational tables. `workers/src/lib/site-content.ts` is the single shared read/write helper for this table, and also the one place that decides how these public endpoints are cached (see the content-flash fix in `DEPLOYMENT.md` §11.5).
 - **Auth** uses short-lived (15 minute) JWT access tokens plus longer-lived opaque refresh tokens, both in HttpOnly/Secure/SameSite=Strict cookies. Password hashing uses PBKDF2-SHA256 via Web Crypto, since Workers can't run native bcrypt/argon2. See `workers/src/lib/password.ts` for the reasoning and an Argon2id upgrade path.
 - **Images** are uploaded through the Cloudflare Images binding, which verifies real image bytes rather than just the declared MIME type, strips non-pixel data, resizes, and re-encodes to WEBP before storing in R2.
 - **Rate limiting** uses Cloudflare's native Rate Limiting binding for login attempts and form submissions, layered with account-level and IP-level lockout tracked in D1.
 - The frontend's data hooks in `src/hooks/useContent.ts` fall back to local seed data when `VITE_API_BASE_URL` is unset, so the site and admin panel are both fully clickable without a deployed backend during early development.
+- **Coupons** are the single source of truth for every discount shown anywhere on the site — the checkout coupon input, the customer offer popup, and the checkout promotional-coupon display all validate and resolve against the same `coupons` table and the same `workers/src/lib/coupons.ts` logic, never a parallel or hardcoded discount. See `DEPLOYMENT.md` §11.2–11.3.
 
 ## Admin panel
 
-Once deployed, sign in at `/admin/login` with the credentials created via `create-admin`. The admin panel is a separate route tree with no public header or footer, and its JS bundle is only loaded when visiting `/admin/*`. 
+Once deployed, sign in at `/admin/login` with the credentials created via `create-admin`. The admin panel is a separate route tree with no public header or footer, and its JS bundle is only loaded when visiting `/admin/*`.
+
+For what was added or fixed in the most recent pass (customer offer popup, checkout promo coupon, mobile hero focal point, and a fix for admin-edited content briefly showing its old version on refresh), see `DEPLOYMENT.md` §11 and `CHANGELOG.md`.

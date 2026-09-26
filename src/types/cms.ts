@@ -47,6 +47,27 @@ export interface HeroBannerContent {
   trustBadges: string[];
   /** Optional hex color override for the eyebrow/heading/description text (e.g. "#1a2b2c"). Falls back to the site's default theme text colors when unset -- see HeroBanner.tsx. */
   textColor?: string;
+  /**
+   * Whether the mobile hero should use a different focal/anchor point on
+   * the SAME banner media (image or video) than desktop, instead of the
+   * default centered crop. This is deliberately not a second media
+   * upload -- see mobileFocalPoint below -- it only changes which part
+   * of the existing banner stays visible when object-fit: cover crops
+   * more tightly on a narrow phone viewport. Defaults to false (existing
+   * mobile behavior: centered crop, unchanged) when unset, so existing
+   * content with no focal point saved keeps looking exactly as it did.
+   */
+  useMobileFocalPoint?: boolean;
+  /**
+   * The pinned anchor point for mobile cropping, as CSS object-position
+   * percentages (0-100, 0-100) -- e.g. { x: 50, y: 20 } keeps the
+   * horizontal center but anchors near the top instead of the vertical
+   * middle. Only read when useMobileFocalPoint is true; ignored on
+   * desktop, which always keeps its existing (centered) crop regardless
+   * of this value. See HeroBanner.tsx for how this becomes an inline
+   * `object-position` applied only below the sm breakpoint.
+   */
+  mobileFocalPoint?: { x: number; y: number };
 }
 
 export interface HowItWorksStep {
@@ -202,6 +223,47 @@ export interface PromoBannerContent {
 export interface DeliveryInfoContent {
   enabled: boolean;
   text: string;
+}
+
+/**
+ * Customer offer popup -- shown on site load, collects an email, and
+ * reveals an existing coupon (never a duplicate/parallel coupon system).
+ * See workers/src/routes/admin-content.ts (site_content key
+ * "popup_offer"). `coupon` is resolved server-side from whichever
+ * existing coupon the admin selected (couponId, admin-side only -- see
+ * PopupOfferAdminContent below) and is null whenever nothing is
+ * currently configured, or the linked coupon has been deactivated,
+ * deleted, or expired since it was selected -- the public shape never
+ * exposes a coupon id, only what's needed to display and apply it,
+ * matching the same "discount is always computed/validated server-side"
+ * boundary already used by the checkout coupon flow.
+ */
+export interface PopupOfferContent {
+  enabled: boolean;
+  heading: string;
+  subheading: string;
+  coupon: {
+    code: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+    minOrderSubtotal: number | null;
+  } | null;
+}
+
+/** Admin-side read/write shape for the popup -- stores a couponId (a reference into the existing coupon system), not the resolved coupon shown to customers. See AdminPopupPage.tsx. */
+export interface PopupOfferAdminContent {
+  enabled: boolean;
+  heading: string;
+  subheading: string;
+  couponId: string | null;
+}
+
+/** One row from the admin's "submitted popup emails" list (requirement #2: email, submission time, coupon shown). See migration 0013_popup_offer_emails.sql. */
+export interface PopupOfferEmailEntry {
+  id: string;
+  email: string;
+  couponCode: string | null;
+  createdAt: string;
 }
 
 /* -------------------------------- Products -------------------------------- */

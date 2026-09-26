@@ -314,6 +314,32 @@ export const deliveryInfoWriteSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Customer offer popup -- same site_content key/value pattern as
+// promo_banner/delivery_info/theme above (site_content key "popup_offer").
+// couponId is a reference to an existing coupons.id, resolved and
+// re-validated server-side on every public read (see
+// routes/admin-content.ts publicSettings.get('/popup-offer')) rather than
+// trusted as-is -- this keeps the "use the existing coupon system, don't
+// duplicate it" requirement enforced at the data layer, not just the UI:
+// an admin can never save a popup pointing at a coupon that doesn't
+// exist, and if the referenced coupon is later deleted or deactivated the
+// public endpoint simply stops returning a coupon (see below) rather than
+// surfacing a dangling id.
+export const popupOfferWriteSchema = z.object({
+  enabled: z.boolean(),
+  heading: z.string().max(150),
+  subheading: z.string().max(300),
+  couponId: z.string().max(100).nullable(),
+}).refine((v) => v.enabled === false || v.heading.trim().length > 0, {
+  message: 'Enter a heading, or turn the popup off',
+  path: ['heading'],
+});
+
+export const popupEmailSubmitSchema = z.object({
+  email: z.string().email().max(200),
+});
+
+// ---------------------------------------------------------------------------
 // Coupons -- see migration 0007_coupons.sql and lib/coupons.ts for the
 // validation/discount-calculation logic that reads this data at checkout.
 // discountValue means different things depending on discountType (percentage

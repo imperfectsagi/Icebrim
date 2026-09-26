@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,6 +7,8 @@ import { Container } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { SeoHead } from '@/components/common/SeoHead';
 import { DeliveryInfo } from '@/components/common/DeliveryInfo';
+import { POPUP_COUPON_STORAGE_KEY } from '@/components/common/OfferPopup';
+import { usePopupOffer } from '@/hooks/useContent';
 import { useCart } from '@/features/cart/CartContext';
 import { api, ApiError } from '@/lib/api-client';
 import { loadExternalScript } from '@/lib/loadExternalScript';
@@ -44,6 +46,10 @@ const COUNTRIES = [
 
 type Step = 'details' | 'paying';
 
+function formatDiscount(coupon: { discountType: 'percentage' | 'fixed'; discountValue: number }): string {
+  return coupon.discountType === 'percentage' ? `${coupon.discountValue}% off` : `${formatPrice(coupon.discountValue)} off`;
+}
+
 export default function CheckoutPage() {
   const { items, subtotal, currency, clearCart, openCart, syncStockConflict } = useCart();
   const navigate = useNavigate();
@@ -56,8 +62,15 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
 
-  const handleApplyCoupon = async () => {
-    const code = couponInput.trim();
+  const handleApplyCoupon = async (codeOverride?: string) => {
+    // Accepts an explicit code so callers that just set couponInput via
+    // setState (which doesn't apply until the next render) -- the popup
+    // auto-apply effect and the promo "Apply" button below -- can pass
+    // the value directly instead of racing a stale closure over
+    // couponInput. The manual Apply button/Enter-key path (which calls
+    // this with no argument) is unaffected; it still reads couponInput
+    // exactly as before.
+    const code = (codeOverride ?? couponInput).trim();
     if (!code) return;
     setCouponChecking(true);
     setCouponError(null);
@@ -86,6 +99,44 @@ export default function CheckoutPage() {
     setCouponInput('');
     setCouponError(null);
   };
+
+  // Requirement #4 (checkout coupon offer): the currently configured
+  // promotional coupon, resolved the same way the popup resolves it --
+  // see usePopupOffer in hooks/useContent.ts and workers/src/routes/
+  // admin-content.ts's /popup-offer, which already only ever returns a
+  // coupon that is active, not expired, and under its usage limit
+  // ("Only show active and valid promotional coupons... do not show
+  // expired/inactive"). Reused here rather than a second setting, since
+  // both requirement #3 and #4 describe exactly one "currently
+  // configured promotional coupon."
+  const { data: promoOffer } = usePopupOffer();
+  const promoCoupon = appliedCoupon ? null : promoOffer?.coupon ?? null;
+
+  // Requirement #1: "the customer should not need to remember or
+  // manually type the coupon code... apply it directly where supported."
+  // If the offer popup captured a coupon code earlier in this visit (see
+  // OfferPopup.tsx), auto-apply it here through the EXISTING
+  // validate-coupon flow the moment checkout loads -- same
+  // handleApplyCoupon call a manual "Apply" click makes, just triggered
+  // automatically and only once. The customer can still remove it via
+  // the existing "Remove" control above.
+  useEffect(() => {
+    if (appliedCoupon) return;
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(POPUP_COUPON_STORAGE_KEY);
+    } catch {
+      return;
+    }
+    if (!stored) return;
+    window.localStorage.removeItem(POPUP_COUPON_STORAGE_KEY);
+    setCouponInput(stored);
+    void handleApplyCoupon(stored);
+    // Intentionally run once on mount: this is a one-time "did the
+    // customer just come from the popup" check, not something that
+    // should re-fire as appliedCoupon/handleApplyCoupon change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {
     register,
@@ -238,7 +289,7 @@ export default function CheckoutPage() {
                   />
                   <button
                     type="button"
-                    onClick={handleApplyCoupon}
+                    onClick={() => handleApplyCoupon()}
                     disabled={couponChecking || !couponInput.trim()}
                     className="px-4 rounded-full text-sm font-medium border border-[var(--color-line)] hover:border-[var(--color-coral)] disabled:opacity-50"
                   >
@@ -250,6 +301,34 @@ export default function CheckoutPage() {
                     {couponError}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/*
+              Requirement #4: the currently configured promotional coupon,
+              shown directly below the existing coupon input/Apply button
+              (unchanged above) without replacing or redesigning it. Only
+              rendered when validate-coupon isn't already checking/applied
+              and the admin currently has a valid promo coupon configured
+              -- "if no promotional coupon is configured, show nothing."
+            */}
+            {!appliedCoupon && promoCoupon && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-[var(--color-coral)] bg-[var(--color-coral-tint)] px-3 py-2.5 text-sm">
+                <span className="text-[var(--color-coral-deep)]">
+                  <span className="font-mono font-semibold">{promoCoupon.code}</span> -- {formatDiscount(promoCoupon)}
+                  {promoCoupon.minOrderSubtotal ? ` on orders over ${formatPrice(promoCoupon.minOrderSubtotal, currency)}` : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCouponInput(promoCoupon.code);
+                    void handleApplyCoupon(promoCoupon.code);
+                  }}
+                  disabled={couponChecking}
+                  className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-coral-deep)] text-white disabled:opacity-50"
+                >
+                  {couponChecking ? 'Applying…' : 'Apply'}
+                </button>
               </div>
             )}
 

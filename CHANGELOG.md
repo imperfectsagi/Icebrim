@@ -1,5 +1,46 @@
 # Changelog — Icebrim Repair Plan Implementation
 
+## Offer popup, checkout promo coupon, mobile hero focal point, content-flash fix
+
+A later, separate pass, not part of the `REPAIR_PLAN.md` numbered fixes
+below (that plan and its 34 fixes are already complete and unrelated to
+this work). Covers six items from a new brief: a customer email-capture
+popup with an admin-selected coupon reveal, the same offer surfaced at
+checkout, a mobile-only focal point for the existing hero banner media,
+and a fix for admin-edited content (banner, theme, promo banner, delivery
+info) briefly showing its old version on refresh. Full detail, deployment
+steps, and the new migration are in `DEPLOYMENT.md` §11.
+
+**Honesty note on verification:** this container had no `node_modules`
+installed and no network access, so unlike the work below (which states
+it was "verified building and typechecking cleanly"), this pass could
+only be verified by careful manual read-through and brace/paren
+balancing of every changed file — not a real `tsc`/`vite build`/`wrangler
+dev` run. Everything was cross-checked against the actual existing code
+(coupon storage units, `Coupon`/`CouponRow` field names, Hono's `Context`
+type, `Button`/`DataTable`/`AdminModal` prop shapes, etc.) rather than
+assumed, but a first real build after this is still the genuine first
+compile check this code will get. If `npm run build` (frontend) or
+`npx tsc --noEmit` (in `workers/`) surfaces anything, it's most likely a
+small type mismatch in one of the new files listed below, not a
+structural problem — everything is additive and nothing existing was
+restructured.
+
+**What was added:**
+- `workers/db/migrations/0013_popup_offer_emails.sql` — new table for popup email submissions
+- `workers/src/lib/site-content.ts` — shared `site_content` read/write helpers, pulled out of `admin-content.ts`/`content.ts` (which had near-duplicate copies), plus the new revalidating-cache/ETag helpers that fix the content-flash bug
+- `workers/src/routes/popup-emails.ts` — public, rate-limited popup email submit endpoint
+- Popup-offer admin + public routes added to `workers/src/routes/admin-content.ts`; `workers/src/routes/content.ts` rewired onto the shared cache-fix helper
+- `popupOfferWriteSchema` / `popupEmailSubmitSchema` added to `workers/src/lib/schemas.ts`
+- `src/components/common/OfferPopup.tsx` (mounted in `Layout.tsx`), `src/features/admin/pages/AdminPopupPage.tsx`, `src/features/admin/pages/AdminPopupEmailsPage.tsx`, `src/features/admin/hooks/useAdminPopupOffer.ts`
+- Checkout promo-coupon block + popup-coupon auto-apply added to `src/pages/CheckoutPage.tsx`
+- Mobile focal point: `HeroBannerContent` type extended, `HeroBanner.tsx` applies it (mobile-only, via a scoped `<style>` block), `AdminBannerPage.tsx` gained a click-to-pin picker
+- Nav/route entries added to `AdminLayout.tsx` / `AdminApp.tsx`
+
+**What was deliberately left unchanged:** the checkout coupon input and Apply button, the coupon system itself (creation, validation, discount calculation), the existing site/admin design and layout, and the Cloudflare/Wrangler architecture (no new bindings or `wrangler.toml` changes — the popup email endpoint reuses the existing `FORM_RATE_LIMITER` binding).
+
+---
+
 All 34 fixes in `REPAIR_PLAN.md` have been implemented, verified building
 and typechecking cleanly, and committed. This document lists what was done
 for each FIX ID, in the plan's own numbering (not strictly commit order,

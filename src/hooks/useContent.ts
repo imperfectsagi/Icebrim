@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, hasLiveApi } from '@/lib/api-client';
-import type { HomePageContent, CompanySettings, Product, BlogPost, Review, PolicyPageContent, PolicyPageKey, CmsPage, PromoBannerContent, DeliveryInfoContent } from '@/types/cms';
+import type { HomePageContent, CompanySettings, Product, BlogPost, Review, PolicyPageContent, PolicyPageKey, CmsPage, PromoBannerContent, DeliveryInfoContent, PopupOfferContent } from '@/types/cms';
 import { homeContent } from '@/data/home';
 import { companySettings } from '@/data/company';
 import { products } from '@/data/products';
@@ -121,6 +121,32 @@ export function useDeliveryInfo() {
       hasLiveApi ? api.get('/api/settings/delivery-info') : Promise.resolve({ enabled: false, text: '' }),
     staleTime: 60 * 1000,
   });
+}
+
+/** Public read of the customer offer popup's current config + resolved coupon. See OfferPopup.tsx. */
+export function usePopupOffer() {
+  return useQuery<PopupOfferContent>({
+    queryKey: ['settings', 'popup-offer'],
+    queryFn: () =>
+      hasLiveApi
+        ? api.get('/api/settings/popup-offer')
+        : Promise.resolve({ enabled: false, heading: '', subheading: '', coupon: null }),
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Submits the customer's email from the offer popup. Not a useQuery
+ * hook (this is a one-shot POST with no cached "state" of its own) --
+ * OfferPopup.tsx calls submitPopupOfferEmail directly rather than
+ * through a useMutation wrapper, since there's no query cache anywhere
+ * else in the app that needs invalidating after this succeeds (the
+ * admin's emails list is a separate authenticated fetch -- see
+ * useAdminPopupOffer.ts -- that simply re-fetches next time an admin
+ * opens that page).
+ */
+export function submitPopupOfferEmail(email: string) {
+  return api.post<{ success: boolean; couponCode: string | null }>('/api/popup-offer/emails', { email });
 }
 
 export function useMaintenanceStatus() {

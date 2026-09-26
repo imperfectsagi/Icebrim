@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AdminPageHeader, AdminCard, FormRow } from '../components/AdminUi';
 import { Button } from '@/components/ui/Button';
 import { ImageUploadField } from '../components/ImageUploadField';
@@ -23,12 +23,97 @@ const schema = z.object({
   secondaryHref: z.string().optional(),
   trustBadges: z.string(),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Enter a hex color like #1a2b2c').optional().or(z.literal('')),
+  useMobileFocalPoint: z.boolean(),
+  mobileFocalX: z.number().min(0).max(100),
+  mobileFocalY: z.number().min(0).max(100),
 }).refine((v) => (v.mediaType === 'video' ? v.videoSrc.length > 0 : v.imageSrc.length > 0), {
   message: 'A banner file is required',
   path: ['imageSrc'],
 });
 
 type FormValues = z.infer<typeof schema>;
+
+/**
+ * Requirement #5: click-to-pin focal point picker. Renders the EXISTING
+ * banner media (whatever is currently set as the desktop image/video --
+ * same file, same aspect ratio, no separate mobile upload) and lets the
+ * admin click anywhere on it to set the saved (x, y) as a percentage of
+ * the media's own width/height. That percentage is exactly what
+ * HeroBanner.tsx later applies as a mobile-only CSS object-position, so
+ * "click near the top-left of the preview" and "the mobile crop anchors
+ * near the top-left of the real banner" are the same coordinate space
+ * regardless of how large or small this preview happens to render at.
+ */
+function FocalPointPicker({
+  mediaType,
+  imageSrc,
+  videoSrc,
+  x,
+  y,
+  onPick,
+}: {
+  mediaType: 'image' | 'video' | 'gif';
+  imageSrc: string;
+  videoSrc: string;
+  x: number;
+  y: number;
+  onPick: (x: number, y: number) => void;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const src = mediaType === 'video' ? videoSrc : imageSrc;
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const rect = frame.getBoundingClientRect();
+    const nextX = ((e.clientX - rect.left) / rect.width) * 100;
+    const nextY = ((e.clientY - rect.top) / rect.height) * 100;
+    onPick(Math.round(Math.min(100, Math.max(0, nextX))), Math.round(Math.min(100, Math.max(0, nextY))));
+  };
+
+  if (!src) {
+    return (
+      <p className="text-xs text-[var(--color-ink-soft)]">
+        Add a banner {mediaType === 'video' ? 'video' : 'image'} above first, then come back here to pin the mobile
+        focal point.
+      </p>
+    );
+  }
+
+  return (
+    <div
+      ref={frameRef}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      aria-label="Click to set the mobile focal point"
+      onKeyDown={(e) => {
+        // Arrow keys nudge the pin by 1% -- keeps this usable without a
+        // mouse, since the click handler alone would otherwise be
+        // unreachable by keyboard.
+        const step = 1;
+        if (e.key === 'ArrowLeft') onPick(Math.max(0, x - step), y);
+        else if (e.key === 'ArrowRight') onPick(Math.min(100, x + step), y);
+        else if (e.key === 'ArrowUp') onPick(x, Math.max(0, y - step));
+        else if (e.key === 'ArrowDown') onPick(x, Math.min(100, y + step));
+        else return;
+        e.preventDefault();
+      }}
+      className="relative w-full aspect-[16/7] rounded-xl overflow-hidden border border-[var(--color-line)] cursor-crosshair focus-visible:outline-2 focus-visible:outline-[var(--color-coral-deep)]"
+    >
+      {mediaType === 'video' ? (
+        <video src={src} className="h-full w-full object-cover pointer-events-none" muted loop autoPlay playsInline />
+      ) : (
+        <img src={src} alt="" role="presentation" className="h-full w-full object-cover pointer-events-none" />
+      )}
+      <div
+        className="absolute h-5 w-5 -ml-2.5 -mt-2.5 rounded-full border-2 border-white bg-[var(--color-coral-deep)] shadow-[0_0_0_1px_rgba(0,0,0,0.25)] pointer-events-none"
+        style={{ left: `${x}%`, top: `${y}%` }}
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
 
 export function AdminBannerPage() {
   const { data: content, isLoading } = useAdminHomeContent();
@@ -61,6 +146,9 @@ export function AdminBannerPage() {
         secondaryHref: content.hero.secondaryCta?.href,
         trustBadges: content.hero.trustBadges.join(', '),
         textColor: content.hero.textColor ?? '',
+        useMobileFocalPoint: content.hero.useMobileFocalPoint ?? false,
+        mobileFocalX: content.hero.mobileFocalPoint?.x ?? 50,
+        mobileFocalY: content.hero.mobileFocalPoint?.y ?? 50,
       });
     }
   }, [content, reset]);
@@ -88,6 +176,8 @@ export function AdminBannerPage() {
             : undefined,
         trustBadges: values.trustBadges.split(',').map((b) => b.trim()).filter(Boolean),
         textColor: values.textColor || undefined,
+        useMobileFocalPoint: values.useMobileFocalPoint,
+        mobileFocalPoint: { x: values.mobileFocalX, y: values.mobileFocalY },
       },
     });
   };
@@ -169,6 +259,39 @@ export function AdminBannerPage() {
           <FormRow label="Image alt text" error={errors.imageAlt?.message}>
             <input className="form-input" {...register('imageAlt')} />
           </FormRow>
+        </AdminCard>
+
+        <AdminCard className="space-y-4">
+          <h2 className="font-semibold">Mobile focal point</h2>
+          <label className="flex items-start gap-2.5 text-sm font-medium">
+            <input type="checkbox" className="h-4 w-4 mt-0.5" {...register('useMobileFocalPoint')} />
+            <span>
+              Use a different focal point on mobile
+              <span className="block font-normal text-xs text-[var(--color-ink-soft)] mt-0.5">
+                The mobile hero, so it crops much tighter. Turn this on if the subject needs a different anchor on
+                phones.
+              </span>
+            </span>
+          </label>
+
+          {watch('useMobileFocalPoint') && (
+            <FormRow
+              label="Focal point (mobile)"
+              hint="Click the video to pin the part that must stay visible in the phone hero."
+            >
+              <FocalPointPicker
+                mediaType={mediaType}
+                imageSrc={watch('imageSrc')}
+                videoSrc={watch('videoSrc')}
+                x={watch('mobileFocalX')}
+                y={watch('mobileFocalY')}
+                onPick={(x, y) => {
+                  setValue('mobileFocalX', x, { shouldValidate: true });
+                  setValue('mobileFocalY', y, { shouldValidate: true });
+                }}
+              />
+            </FormRow>
+          )}
         </AdminCard>
 
         <AdminCard className="space-y-4">

@@ -20,6 +20,8 @@ import { AdminCouponsPage } from './pages/AdminCouponsPage';
 import { AdminCompanySettingsPage } from './pages/AdminCompanySettingsPage';
 import { AdminBrandingPage } from './pages/AdminBrandingPage';
 import { AdminPromoBannerPage } from './pages/AdminPromoBannerPage';
+import { AdminPopupPage } from './pages/AdminPopupPage';
+import { AdminPopupEmailsPage } from './pages/AdminPopupEmailsPage';
 import { AdminSeoSettingsPage } from './pages/AdminSeoSettingsPage';
 import { AdminMessagesPage } from './pages/AdminMessagesPage';
 import { AdminOrdersPage } from './pages/AdminOrdersPage';
@@ -64,6 +66,8 @@ export default function AdminApp() {
           <Route path="settings/company" element={<AdminCompanySettingsPage />} />
           <Route path="settings/branding" element={<AdminBrandingPage />} />
           <Route path="settings/promo-banner" element={<AdminPromoBannerPage />} />
+          <Route path="settings/popup-offer" element={<AdminPopupPage />} />
+          <Route path="popup-offer/emails" element={<AdminPopupEmailsPage />} />
           <Route path="settings/delivery-info" element={<AdminDeliveryPage />} />
           <Route path="settings/seo" element={<AdminSeoSettingsPage />} />
           <Route path="settings/system" element={<AdminSystemSettingsPage />} />

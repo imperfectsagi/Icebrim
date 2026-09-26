@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, FolderTree, FileText, Star, Image,
   PanelTop, Settings, Users, Search, Mail, BarChart3, Cog, LogOut, Palette,
-  ShoppingBag, Menu, X, ScrollText, Tag, Files, Megaphone, Truck, Layers,
+  ShoppingBag, Menu, X, ScrollText, Tag, Files, Megaphone, Truck, Layers, Gift, Inbox,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useCompanySettings } from '@/hooks/useContent';
@@ -42,6 +42,8 @@ const NAV_SECTIONS: { title?: string; items: NavItem[] }[] = [
     items: [
       { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
       { label: 'Coupons', href: '/admin/coupons', icon: Tag },
+      { label: 'Offer Popup', href: '/admin/settings/popup-offer', icon: Gift },
+      { label: 'Popup Emails', href: '/admin/popup-offer/emails', icon: Inbox },
     ],
   },
   {

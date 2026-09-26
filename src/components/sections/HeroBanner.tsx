@@ -3,10 +3,43 @@ import { Container } from '@/components/ui/primitives';
 import { Check } from 'lucide-react';
 import type { HeroBannerContent } from '@/types/cms';
 
+/**
+ * Clamps and coerces a focal-point coordinate to a safe 0-100 number
+ * before it's interpolated into the raw <style> string below -- this
+ * value is admin-authored (via AdminBannerPage.tsx's click-to-pin UI, so
+ * already trusted in the sense the rest of this codebase trusts
+ * site_content), but it still ends up directly inside CSS text rather
+ * than a React style prop/attribute, so it's defensively sanitized to a
+ * plain number here rather than assumed well-formed.
+ */
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) return 50;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
 export function HeroBanner({ content }: { content: HeroBannerContent }) {
   if (!content.visible) return null;
 
   const isVideo = content.mediaType === 'video' && content.videoSrc;
+
+  // Requirement #5 (mobile hero focal point): when enabled, the SAME
+  // banner media (image or video, same aspect ratio, no separate mobile
+  // upload) gets a different object-position on mobile only, so a
+  // tighter mobile crop still keeps the subject the admin pinned in
+  // frame. Desktop's object-position is left at the browser default
+  // (center, i.e. untouched) regardless of this setting -- see the
+  // scoped <style> block below, which is the only place this value is
+  // actually applied, and only inside its `@media (max-width: 639px)`
+  // block (matching the same sm breakpoint used by the mobileSrc
+  // <picture> logic above). A CSS custom property (rather than an
+  // inline object-position, which would also affect desktop, or a
+  // dynamic Tailwind class, which JIT can't generate for an
+  // admin-chosen runtime value) is what makes "mobile only" possible
+  // here without a second image/video.
+  const mobileFocalPoint =
+    content.useMobileFocalPoint && content.mobileFocalPoint
+      ? `${clampPercent(content.mobileFocalPoint.x)}% ${clampPercent(content.mobileFocalPoint.y)}%`
+      : null;
 
   return (
     <section className="relative isolate overflow-hidden bg-[var(--color-surface)]">
@@ -16,7 +49,7 @@ export function HeroBanner({ content }: { content: HeroBannerContent }) {
           <video
             src={content.videoSrc}
             poster={content.image.src || undefined}
-            className="h-full w-full object-cover"
+            className="hero-banner-media h-full w-full object-cover"
             autoPlay
             muted
             loop
@@ -41,7 +74,7 @@ export function HeroBanner({ content }: { content: HeroBannerContent }) {
               src={content.image.src}
               alt=""
               role="presentation"
-              className="h-full w-full object-cover"
+              className="hero-banner-media h-full w-full object-cover"
               loading="eager"
               fetchPriority="high"
             />
@@ -51,7 +84,7 @@ export function HeroBanner({ content }: { content: HeroBannerContent }) {
             src={content.image.src}
             alt=""
             role="presentation"
-            className="h-full w-full object-cover"
+            className="hero-banner-media h-full w-full object-cover"
             loading="eager"
             fetchPriority="high"
           />
@@ -131,6 +164,21 @@ export function HeroBanner({ content }: { content: HeroBannerContent }) {
         }
         @media (prefers-reduced-motion: reduce) {
           .frost-overlay { animation: none; opacity: 0; }
+        }
+        ${
+          mobileFocalPoint
+            ? `
+        /* Requirement #5: mobile-only focal point. Scoped to max-width:
+           639px (same sm breakpoint as the mobileSrc <picture> logic
+           above) so desktop's crop/anchor is always left at its default,
+           regardless of this setting -- see the mobileFocalPoint
+           constant above for why a scoped <style> block is what makes
+           "mobile only" possible for a runtime, admin-chosen value. */
+        @media (max-width: 639px) {
+          .hero-banner-media { object-position: ${mobileFocalPoint}; }
+        }
+        `
+            : ''
         }
       `}</style>
     </section>

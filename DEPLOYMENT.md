@@ -395,3 +395,46 @@ npx wrangler d1 execute icebrim-db --remote \
   --command "SELECT code, discount_type, discount_value FROM coupons WHERE discount_type = 'fixed';"
 ```
 `discount_value` should be in **pence**, not pounds (a "£5 off" coupon should show `500`). If an existing coupon shows the pounds value instead (e.g. `5`), fix it with `UPDATE coupons SET discount_value = discount_value * 100 WHERE id = '<that coupon's id>';` — check each one individually rather than running this across every fixed coupon, in case any were already stored correctly.
+
+---
+
+## 11. What was added in this pass (offer popup, checkout promo coupon, mobile hero focal point, content-flash fix)
+
+### 11.1 New database migration (`0013`)
+
+Run the same command as step 1.2/6.4 to apply it:
+```bash
+npx wrangler d1 migrations apply icebrim-db --remote
+```
+
+| Migration | What it does |
+|---|---|
+| `0013_popup_offer_emails.sql` | Creates the `popup_offer_emails` table (email + submission timestamp + the coupon code shown at signup) — see §11.2. Purely additive; nothing existing is touched. |
+
+The popup's own settings (enabled/disabled, heading, subheading, which coupon it shows) did **not** need a migration — they're stored as one more row in the existing `site_content` table, exactly like the Promo Banner and Delivery Info settings already do.
+
+### 11.2 New: Customer offer popup (Admin → Offer Popup / Popup Emails)
+
+A popup now appears when the site loads, with an admin-editable heading, subheading, an email field, and Submit/close controls. After a customer submits their email, it reveals the coupon the admin selected — the code is shown copyable and pre-filled, and clicking "Shop now" carries it straight to checkout where it's auto-applied through the **existing** coupon-validation endpoint (`/api/orders/validate-coupon`) — the customer never has to type or remember it. If they close the popup instead, the code is still saved for checkout to auto-apply on their next visit.
+
+This reuses the **existing coupon system end-to-end** — no second coupon table or logic was created. **Admin → Offer Popup** lets you turn the popup on/off, set its heading and subheading, and pick which existing coupon (from **Admin → Coupons**) it shows; only active coupons are selectable. To run a different promotion (welcome offer, festival sale, etc.), create or edit the coupon on the Coupons page as usual, then select it on the Offer Popup settings page — no code change needed. **Admin → Popup Emails** lists every submission (email, coupon shown, submission date/time) — deliberately just those three fields, with no CRM, campaigns, or analytics added.
+
+The popup won't reappear for a visitor who already submitted or dismissed it (tracked client-side, same pattern as the existing cookie-consent banner), and it doesn't show during maintenance mode.
+
+### 11.3 New: Checkout coupon offer
+
+Directly below the existing checkout coupon input and Apply button (both unchanged), checkout now shows the same currently-configured promotional coupon the popup uses — code, discount, and an Apply button — whenever one is active and valid. It reads the same public endpoint as the popup (`GET /api/settings/popup-offer`), so the two can never disagree about what's currently on offer, and it automatically shows nothing if no promotional coupon is configured, or if the configured one has since expired, been deactivated, or hit its usage limit — the server re-checks all of that on every read, the same way `/validate-coupon` does at the real checkout step.
+
+### 11.4 New: Mobile hero focal point (Admin → Banner)
+
+**Admin → Banner** has a new "Use a different focal point on mobile" toggle. When on, a click-to-pin preview appears showing the *existing* banner image or video (no separate mobile file is uploaded — same aspect ratio, same media) — click anywhere on it (or use arrow keys) to pin the point that must stay visible when the mobile hero crops in tighter. That point is saved and applied **only** on mobile, as a CSS `object-position`; desktop's crop is completely unaffected regardless of this setting, and turning it off restores the existing (centered) mobile behavior exactly as before.
+
+### 11.5 Fixed: old content flash on refresh
+
+**Root cause:** the public endpoints for home content (which carries the banner), theme color, the promo banner, and delivery info were sent with `Cache-Control: public, max-age=<N>` — making them eligible for Cloudflare's shared edge cache — but nothing in this codebase purges that cache when an admin saves a change. So for up to `N` seconds after an edit, a visitor's reload could still be served the previous cached response instead of the one just saved. (The existing accent-color `localStorage` fix from §10.3 helps the color paint instantly on a *return* visit, but doesn't stop the underlying HTTP cache from handing out a stale value in the first place — the two fixes are complementary, not overlapping.)
+
+**Fix:** these endpoints (`/api/content/home`, `/api/content/company`, `/api/content/policy/:key`, `/api/settings/theme`, `/api/settings/promo-banner`, `/api/settings/delivery-info`, and the new `/api/settings/popup-offer`) now send `Cache-Control: public, no-cache` with an ETag derived from the content's own `updated_at` (for the popup offer, also the linked coupon's `updated_at`). This keeps the response cacheable — Cloudflare's CDN is not disabled — but forces a revalidation check on every load; a cache that respects this can never serve a stale body after a save, because it always confirms the content is still current first. No content is hardcoded anywhere as part of this fix.
+
+Nothing else changes: the CMS/admin system, the coupon system, and the site's existing design/layout are untouched by this fix.
+
+

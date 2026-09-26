@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { PromoBanner } from './PromoBanner';
 import { CookieConsent } from '@/components/common/CookieConsent';
+import { OfferPopup } from '@/components/common/OfferPopup';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 
 export function Layout() {
@@ -16,6 +17,7 @@ export function Layout() {
       </main>
       <Footer />
       <CookieConsent />
+      <OfferPopup />
     </div>
   );
 }

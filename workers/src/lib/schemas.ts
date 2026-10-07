@@ -125,6 +125,16 @@ export const reviewEditSchema = z.object({
   mediaType: z.enum(['none', 'image', 'video']).optional(),
   mediaSrc: z.string().max(500).nullable().optional(),
   mediaImages: z.array(z.string().max(500)).max(6).optional(),
+  // Review date (YYYY-MM-DD). Lets an admin back-date / re-date a review; the
+  // time-of-day already stored on the review is kept (see the PUT route).
+  createdAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Review date must be a valid date')
+    .refine((v) => {
+      const d = new Date(`${v}T00:00:00Z`);
+      return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v && d.getUTCFullYear() >= 2000 && d.getUTCFullYear() <= 2100;
+    }, 'Review date must be a valid date')
+    .optional(),
 });
 
 export const contactMessageSchema = z.object({

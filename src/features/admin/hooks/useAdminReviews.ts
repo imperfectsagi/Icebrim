@@ -40,6 +40,8 @@ export interface ReviewEditInput {
   mediaType?: 'none' | 'image' | 'video';
   mediaSrc?: string | null;
   mediaImages?: string[];
+  /** Review date as YYYY-MM-DD. */
+  createdAt?: string;
 }
 
 export function useEditReview() {

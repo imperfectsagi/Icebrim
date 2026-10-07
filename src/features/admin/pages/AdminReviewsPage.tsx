@@ -26,6 +26,8 @@ interface ReviewEditFormState {
   mediaType: 'none' | 'image' | 'video';
   mediaSrc: string;
   mediaImages: string[];
+  /** Review date, YYYY-MM-DD (value of the date input). */
+  createdAt: string;
 }
 
 function toStarRating(n: number): 1 | 2 | 3 | 4 | 5 {
@@ -78,6 +80,7 @@ export function AdminReviewsPage() {
       mediaType: review.mediaType ?? 'none',
       mediaSrc: review.mediaSrc ?? '',
       mediaImages: review.mediaImages ?? [],
+      createdAt: /^\d{4}-\d{2}-\d{2}/.test(review.createdAt) ? review.createdAt.slice(0, 10) : '',
     });
     setEditError(null);
   };
@@ -104,6 +107,10 @@ export function AdminReviewsPage() {
       setEditError('Review text is too short.');
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(editForm.createdAt)) {
+      setEditError('Please choose a valid review date.');
+      return;
+    }
 
     editReview.mutate(
       {
@@ -117,6 +124,7 @@ export function AdminReviewsPage() {
           mediaType: editForm.mediaType,
           mediaSrc: editForm.mediaType === 'none' ? null : editForm.mediaSrc || null,
           mediaImages: editForm.mediaImages,
+          createdAt: editForm.createdAt,
         },
       },
       {
@@ -203,6 +211,15 @@ export function AdminReviewsPage() {
               <EditableStarRating
                 value={editForm.rating}
                 onChange={(rating) => setEditForm((f) => (f ? { ...f, rating } : f))}
+              />
+            </FormRow>
+            <FormRow label="Review date">
+              <input
+                type="date"
+                className="form-input"
+                value={editForm.createdAt}
+                min="2000-01-01"
+                onChange={(e) => setEditForm((f) => (f ? { ...f, createdAt: e.target.value } : f))}
               />
             </FormRow>
             <FormRow label="Author name">

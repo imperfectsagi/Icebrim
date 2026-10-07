@@ -1,5 +1,10 @@
 # Changelog — Icebrim Repair Plan Implementation
 
+## Reviews: no "Write a review" in "Read all reviews", editable review date
+
+- Homepage > "Read all reviews" now opens only the "All customer reviews" list. The "Write a review" form was removed from that panel (`ReviewsSection.tsx`). The product page's "Write a review" form is untouched.
+- Admin > Reviews > Edit now has a "Review date" field so old reviews can be re-dated (new or old). Backend: `PUT /api/admin/reviews/:id` accepts `createdAt` (YYYY-MM-DD); only the date part changes, the stored time-of-day/format is kept so ordering still works.
+
 ## Maintenance page shows only the admin's message
 
 The public maintenance page no longer shows "Expected back: <date>". Visitors see just the message set in Admin > System Settings. The public `/api/settings/maintenance` response no longer includes the duration / end date either. The duration field and auto-switch-off still work (server-side) and the admin panel still shows the end date for the admin's own reference.

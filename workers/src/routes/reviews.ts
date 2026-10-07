@@ -171,12 +171,19 @@ adminReviews.put('/:id', async (c) => {
     mediaType: parsed.data.mediaType ?? existing.media_type ?? 'none',
     mediaSrc: parsed.data.mediaSrc === undefined ? existing.media_src : parsed.data.mediaSrc,
     mediaImages: parsed.data.mediaImages === undefined ? existing.media_images : JSON.stringify(parsed.data.mediaImages),
+    // Only the DATE part changes; the stored time-of-day / format is kept so
+    // the column stays in the same shape the public list sorts on.
+    createdAt: parsed.data.createdAt
+      ? /^\d{4}-\d{2}-\d{2}/.test(existing.created_at ?? '')
+        ? existing.created_at.replace(/^\d{4}-\d{2}-\d{2}/, parsed.data.createdAt)
+        : `${parsed.data.createdAt} 12:00:00`
+      : existing.created_at,
   };
 
   await c.env.DB.prepare(
-    'UPDATE reviews SET author_name = ?, location = ?, rating = ?, title = ?, body = ?, media_type = ?, media_src = ?, media_images = ? WHERE id = ?',
+    'UPDATE reviews SET author_name = ?, location = ?, rating = ?, title = ?, body = ?, media_type = ?, media_src = ?, media_images = ?, created_at = ? WHERE id = ?',
   )
-    .bind(next.authorName, next.location, next.rating, next.title, next.body, next.mediaType, next.mediaSrc, next.mediaImages, id)
+    .bind(next.authorName, next.location, next.rating, next.title, next.body, next.mediaType, next.mediaSrc, next.mediaImages, next.createdAt, id)
     .run();
 
   // The star rating may have changed -- recompute the product's aggregate

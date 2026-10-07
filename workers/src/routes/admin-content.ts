@@ -402,8 +402,9 @@ publicSettings.get('/maintenance', async (c) => {
   return c.json({
     maintenanceMode: active,
     maintenanceMessage: settings.maintenanceMessage || DEFAULT_MAINTENANCE_MESSAGE,
-    maintenanceDurationDays: active ? settings.maintenanceDurationDays : 0,
-    maintenanceEndsAt: active ? settings.maintenanceEndsAt : null,
+    // Visitors only ever see the admin's message -- the expected-back date is
+    // deliberately NOT exposed publicly (the admin panel still shows it, and
+    // auto-off still runs server-side via isMaintenanceActive).
   });
 });
 

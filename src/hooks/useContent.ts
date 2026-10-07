@@ -154,10 +154,6 @@ export function submitPopupOfferEmail(email: string) {
 export interface MaintenanceStatus {
   maintenanceMode: boolean;
   maintenanceMessage: string;
-  /** Whole days the admin said maintenance should last (0 = no estimate). */
-  maintenanceDurationDays?: number;
-  /** ISO time maintenance is expected to end, when a number of days was set. */
-  maintenanceEndsAt?: string | null;
 }
 
 export function useMaintenanceStatus() {

@@ -1,5 +1,14 @@
 # Changelog — Icebrim Repair Plan Implementation
 
+## Maintenance page shows only the admin's message
+
+The public maintenance page no longer shows "Expected back: <date>". Visitors see just the message set in Admin > System Settings. The public `/api/settings/maintenance` response no longer includes the duration / end date either. The duration field and auto-switch-off still work (server-side) and the admin panel still shows the end date for the admin's own reference.
+
+## FAQ question titles invisible on /faq
+
+**Root cause:** `--color-base` in `src/index.css` `@theme` made Tailwind v4 generate a white `text-base` colour utility that collided with the `text-base` font-size class used by the FAQ question text, so questions rendered white-on-white (answers and chevron were unaffected).
+**Fix:** renamed the token to `--color-page` (its only use is the `body` background) and gave the question text an explicit ink colour in `FaqAccordion.tsx`. No FAQ content is hardcoded; questions still come from the admin page's H3 headings.
+
 ## Fixes pass: rich content, blog, FAQ, reviews, shop heading, System Settings
 
 Redeployment steps: `REDEPLOYMENT_GUIDE.md`. New migration: `0014_admin_session_activity.sql`.

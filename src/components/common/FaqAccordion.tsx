@@ -42,7 +42,7 @@ export function FaqAccordion({ items }: { items: { question: string; answerHtml:
                 onClick={() => toggle(index)}
                 className="flex w-full min-h-[3.25rem] items-center justify-between gap-4 px-5 py-4 text-left font-medium text-[var(--color-ink)]"
               >
-                <span className="font-display text-base md:text-lg leading-snug">{item.question}</span>
+                <span className="font-display text-base md:text-lg leading-snug text-[var(--color-ink)]">{item.question}</span>
                 <ChevronDown
                   size={18}
                   aria-hidden="true"

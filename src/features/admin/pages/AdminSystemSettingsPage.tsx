@@ -151,7 +151,7 @@ export function AdminSystemSettingsPage() {
 
           <FormRow
             label="Maintenance duration (days)"
-            hint="How many days maintenance is expected to last. Visitors are shown the expected return date. Counts from when maintenance is switched on. Use 0 for no estimate."
+            hint="How many days maintenance is expected to last. For your reference only -- visitors see just your message, not a date. Counts from when maintenance is switched on. Use 0 for no estimate."
             error={errors.maintenanceDurationDays?.message}
           >
             <input

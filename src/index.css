@@ -3,7 +3,11 @@
 
 @theme {
   /* Color tokens -- Icebrim: white base, warm coral accent, pale ice-blue for "cold" cues */
-  --color-base: #ffffff;
+  /* NOTE: deliberately NOT named --color-base. Tailwind v4 turns every --color-* token into
+     text-/bg-/border- utilities, so --color-base would create a `text-base` colour utility
+     (white) that collides with the font-size utility `text-base` and renders any element
+     using it as white-on-white (this blanked the FAQ question titles). */
+  --color-page: #ffffff;
   --color-surface: #fbf7f5;
   --color-surface-alt: #f6eeea;
   --color-ink: #241b1a;
@@ -40,7 +44,7 @@
   }
 
   body {
-    background-color: var(--color-base);
+    background-color: var(--color-page);
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

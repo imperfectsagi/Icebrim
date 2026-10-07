@@ -30,12 +30,6 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
 }
 
 function MaintenancePage({ status }: { status: MaintenanceStatus }) {
-  const back = status.maintenanceEndsAt ? new Date(status.maintenanceEndsAt) : null;
-  const backLabel =
-    back && back.getTime() > Date.now()
-      ? back.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
-      : null;
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface)] px-6 text-center">
       <div className="max-w-md">
@@ -48,9 +42,6 @@ function MaintenancePage({ status }: { status: MaintenanceStatus }) {
         <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed whitespace-pre-line">
           {status.maintenanceMessage || "We're making some improvements. Please check back shortly."}
         </p>
-        {backLabel && (
-          <p className="mt-4 text-sm font-medium text-[var(--color-ink)]">Expected back: {backLabel}</p>
-        )}
       </div>
     </div>
   );

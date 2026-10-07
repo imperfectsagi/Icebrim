@@ -1,0 +1,13 @@
+-- ---------------------------------------------------------------------------
+-- Admin inactivity timeout (System Settings > "Admin session timeout").
+--
+-- Each admin login is one row in refresh_tokens (its id doubles as the
+-- session id carried in the access-token JWT as the `sid` claim). To log an
+-- admin out after N idle minutes the API needs to know when that session
+-- was last used, so we record it here. NULL (rows created before this
+-- migration) is treated as "last active when the session was created".
+--
+-- Existing admins are simply asked to sign in once more after deploying,
+-- because their old access tokens carry no `sid` claim.
+-- ---------------------------------------------------------------------------
+ALTER TABLE refresh_tokens ADD COLUMN last_activity_at TEXT;

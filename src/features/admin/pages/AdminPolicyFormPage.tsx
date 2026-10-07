@@ -91,7 +91,7 @@ function AdminPolicyForm({ policyKey }: { policyKey: PolicyPageKey }) {
           <Controller
             control={control}
             name="contentHtml"
-            render={({ field }) => <RichTextEditor value={field.value} onChange={field.onChange} />}
+            render={({ field }) => <RichTextEditor value={field.value ?? ''} onChange={field.onChange} ariaLabel="Policy content" />}
           />
         </AdminCard>
 

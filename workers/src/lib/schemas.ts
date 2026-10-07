@@ -76,7 +76,9 @@ export const blogWriteSchema = z.object({
   tags: z.array(z.string().min(1).max(40)).max(20),
   author: z.string().min(1).max(100),
   status: z.enum(['draft', 'published']),
-  publishedAt: z.string().min(1).max(40),
+  // Optional: the server stamps the real publish time when a post goes
+  // live, so the admin form no longer has to guess one.
+  publishedAt: z.string().min(1).max(40).optional(),
   seo: seoMetaSchema,
 });
 
@@ -365,3 +367,17 @@ export const couponWriteSchema = z
     path: ['discountValue'],
   });
 
+
+
+// ---------------------------------------------------------------------------
+// System settings (maintenance mode + admin inactivity timeout). The
+// start/end timestamps of a maintenance window are NOT accepted from the
+// client -- the server computes them (see lib/system-settings.ts).
+// ---------------------------------------------------------------------------
+export const systemSettingsWriteSchema = z.object({
+  maintenanceMode: z.boolean(),
+  maintenanceMessage: z.string().max(500).default(''),
+  maintenanceDurationDays: z.number().int().min(0).max(365).default(0),
+  maintenanceAutoEnd: z.boolean().default(false),
+  sessionTimeoutMinutes: z.number().int().min(5, 'Session timeout must be at least 5 minutes').max(1440, 'Session timeout cannot exceed 1440 minutes (24 hours)'),
+});

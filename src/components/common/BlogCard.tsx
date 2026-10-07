@@ -9,12 +9,24 @@ export function BlogCard({ post }: { post: BlogPost }) {
       className="group block rounded-[var(--radius-card)] overflow-hidden bg-white border border-[var(--color-line)] hover:shadow-[var(--shadow-lift)] transition-shadow duration-300"
     >
       <div className="aspect-[16/10] overflow-hidden bg-[var(--color-surface)]">
-        <img
-          src={post.featuredImage.src}
-          alt={post.featuredImage.alt}
-          loading="lazy"
-          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {post.featuredMediaType === 'video' && post.featuredVideoSrc && !post.featuredImage.src ? (
+          // Video post without a poster image: show the clip's first frame.
+          <video
+            src={`${post.featuredVideoSrc}#t=0.1`}
+            aria-label={post.featuredImage.alt || post.title}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <img
+            src={post.featuredImage.src}
+            alt={post.featuredImage.alt}
+            loading="lazy"
+            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        )}
       </div>
       <div className="p-5">
         <Badge tone="ice" className="mb-3">

@@ -93,8 +93,8 @@ const turnstileRef = useRef<TurnstileInstance | null>(null);
             role="status"
             className="mb-4 rounded-lg bg-[var(--color-surface-alt)] border border-[var(--color-line)] px-3 py-2.5 text-sm text-[var(--color-ink-soft)]"
           >
-            Your session expired, please sign in again. Any unsaved changes on the page you were
-            editing may have been lost.
+            You were signed out because your session ended or you were inactive for too long. Please
+            sign in again. Any unsaved changes on the page you were editing may have been lost.
           </p>
         )}
 

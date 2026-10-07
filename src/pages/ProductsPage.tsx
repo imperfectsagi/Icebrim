@@ -27,7 +27,7 @@ export default function ProductsPage() {
           <div className="max-w-xl mb-12">
             <Eyebrow>Shop</Eyebrow>
             <h1 className="font-display text-4xl md:text-5xl font-medium text-balance">
-              Find your relief kit
+              Meet your relief
             </h1>
           </div>
 

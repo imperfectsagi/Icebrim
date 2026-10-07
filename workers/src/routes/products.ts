@@ -4,6 +4,7 @@ import type { AuthedVariables } from '../middleware/auth';
 import { requireAuth } from '../middleware/auth';
 import { productWriteSchema } from '../lib/schemas';
 import { logAuditEvent, getClientIp } from '../lib/login-security';
+import { sanitizeBlogHtml } from '../lib/sanitize-html';
 
 const products = new Hono<{ Bindings: Env; Variables: Partial<AuthedVariables> }>();
 
@@ -120,7 +121,7 @@ adminProducts.post('/', async (c) => {
   )
     .bind(
       id, input.slug, input.name, input.category, input.sku, input.price, input.offerPrice ?? null,
-      input.currency, input.stock, input.shortDescription, input.description, JSON.stringify(input.specs),
+      input.currency, input.stock, input.shortDescription, sanitizeBlogHtml(input.description), JSON.stringify(input.specs),
       input.seo.title, input.seo.description, input.published ? 1 : 0, input.ratingAverage, input.ratingCount,
       input.videoUrl ?? null,
     )
@@ -163,7 +164,7 @@ adminProducts.put('/:id', async (c) => {
   if (input.offerPrice !== undefined) fieldMap.offer_price = input.offerPrice;
   if (input.stock !== undefined) fieldMap.stock = input.stock;
   if (input.shortDescription !== undefined) fieldMap.short_description = input.shortDescription;
-  if (input.description !== undefined) fieldMap.description = input.description;
+  if (input.description !== undefined) fieldMap.description = sanitizeBlogHtml(input.description);
   if (input.specs !== undefined) fieldMap.specs = JSON.stringify(input.specs);
   if (input.seo?.title !== undefined) fieldMap.seo_title = input.seo.title;
   if (input.seo?.description !== undefined) fieldMap.seo_description = input.seo.description;

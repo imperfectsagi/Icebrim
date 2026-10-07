@@ -2,7 +2,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AdminPageHeader, AdminCard, FormRow } from '../components/AdminUi';
 import { Button } from '@/components/ui/Button';
 import { ImageUploadField } from '../components/ImageUploadField';
@@ -36,7 +36,8 @@ export function AdminBlogFormPage() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'new';
   const navigate = useNavigate();
-  const { data: posts } = useAdminBlogPosts();
+  const { data: posts, isLoading: postsLoading } = useAdminBlogPosts();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const createPost = useCreateBlogPost();
   const updatePost = useUpdateBlogPost();
   const existing = !isNew ? posts?.find((p) => p.id === id) : undefined;
@@ -76,35 +77,64 @@ export function AdminBlogFormPage() {
   }, [existing, reset]);
 
   const onSubmit = async (values: FormValues) => {
+    setSubmitError(null);
     const payload = {
-      title: values.title,
+      title: values.title.trim(),
       slug: values.slug,
-      excerpt: values.excerpt,
+      excerpt: values.excerpt.trim(),
       contentHtml: values.contentHtml,
-      featuredImage: { src: values.featuredImageSrc, alt: values.featuredImageAlt },
+      featuredImage: { src: values.featuredImageSrc, alt: values.featuredImageAlt.trim() },
       featuredMediaType: values.featuredMediaType,
-      featuredVideoSrc: values.featuredMediaType === 'video' ? values.featuredVideoSrc : undefined,
-      category: values.category,
+      // Always send the field so switching a post from Video back to
+      // Image/GIF clears the old clip instead of leaving it behind.
+      featuredVideoSrc: values.featuredMediaType === 'video' ? values.featuredVideoSrc : '',
+      category: values.category.trim(),
       tags: values.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      author: values.author,
+      author: values.author.trim(),
       status: values.status,
-      publishedAt: existing?.publishedAt ?? new Date().toISOString().slice(0, 10),
-      seo: { title: values.seoTitle, description: values.seoDescription },
+      // The server stamps the real publish time when a draft goes live.
+      publishedAt: existing?.publishedAt ?? new Date().toISOString(),
+      seo: { title: values.seoTitle.trim(), description: values.seoDescription.trim() },
     };
 
-    if (isNew) {
-      await createPost.mutateAsync(payload);
-    } else if (id) {
-      await updatePost.mutateAsync({ id, ...payload });
+    try {
+      if (isNew) {
+        await createPost.mutateAsync(payload);
+      } else if (id) {
+        await updatePost.mutateAsync({ id, ...payload });
+      }
+      navigate('/admin/blogs');
+    } catch (err) {
+      // Show the server's reason (e.g. "A post with this URL slug already
+      // exists") instead of failing silently.
+      setSubmitError(err instanceof Error ? err.message : 'Could not save the post. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    navigate('/admin/blogs');
   };
+
+  if (!isNew && postsLoading) return <p className="text-sm text-[var(--color-ink-soft)]">Loading…</p>;
+  if (!isNew && !postsLoading && !existing) {
+    return (
+      <div>
+        <AdminPageHeader title="Edit Blog Post" />
+        <p className="text-sm text-[var(--color-ink-soft)] mb-4">This post could not be found. It may have been deleted.</p>
+        <Button type="button" variant="secondary" onClick={() => navigate('/admin/blogs')}>
+          Back to posts
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
       <AdminPageHeader title={isNew ? 'Add Blog Post' : 'Edit Blog Post'} />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6 max-w-3xl">
+        {submitError && (
+          <div role="alert" className="rounded-xl border border-[var(--color-coral-deep)] bg-[var(--color-coral-tint)] px-4 py-3 text-sm text-[var(--color-coral-deep)]">
+            {submitError}
+          </div>
+        )}
         <AdminCard className="space-y-4">
           <FormRow label="Title" error={errors.title?.message}>
             <input
@@ -119,7 +149,7 @@ export function AdminBlogFormPage() {
           <FormRow label="URL slug" hint={`icebrim.com/blog/${watch('slug') || '...'}`} error={errors.slug?.message}>
             <input className="form-input" {...register('slug')} />
           </FormRow>
-          <FormRow label="Excerpt" error={errors.excerpt?.message}>
+          <FormRow label="Excerpt" hint={`${(watch('excerpt') ?? '').length}/300 -- shown on blog cards`} error={errors.excerpt?.message}>
             <textarea rows={2} className="form-input" {...register('excerpt')} />
           </FormRow>
         </AdminCard>
@@ -179,7 +209,14 @@ export function AdminBlogFormPage() {
           <Controller
             control={control}
             name="contentHtml"
-            render={({ field }) => <RichTextEditor value={field.value} onChange={field.onChange} />}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                ariaLabel="Blog content"
+                hint="Use Heading 2 for main sections and Heading 3 for sub-sections. Paste from Word or Google Docs is cleaned automatically."
+              />
+            )}
           />
           {errors.contentHtml && (
             <p className="text-xs text-[var(--color-coral-deep)]">{errors.contentHtml.message}</p>
@@ -199,7 +236,7 @@ export function AdminBlogFormPage() {
             <FormRow label="Author" error={errors.author?.message}>
               <input className="form-input" {...register('author')} />
             </FormRow>
-            <FormRow label="Status">
+            <FormRow label="Status" hint="Drafts are only visible here. Published posts go live straight away.">
               <select className="form-input" {...register('status')}>
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -210,10 +247,10 @@ export function AdminBlogFormPage() {
 
         <AdminCard className="space-y-4">
           <h2 className="font-semibold">SEO</h2>
-          <FormRow label="SEO meta title" error={errors.seoTitle?.message}>
+          <FormRow label="SEO meta title" hint={`${(watch('seoTitle') ?? '').length}/70 -- used as the browser/search title`} error={errors.seoTitle?.message}>
             <input className="form-input" {...register('seoTitle')} />
           </FormRow>
-          <FormRow label="SEO meta description" error={errors.seoDescription?.message}>
+          <FormRow label="SEO meta description" hint={`${(watch('seoDescription') ?? '').length}/160 -- used as the search/social description`} error={errors.seoDescription?.message}>
             <textarea rows={2} className="form-input" {...register('seoDescription')} />
           </FormRow>
         </AdminCard>
@@ -225,6 +262,11 @@ export function AdminBlogFormPage() {
           <Button type="button" variant="secondary" onClick={() => navigate('/admin/blogs')}>
             Cancel
           </Button>
+          {existing?.status === 'published' && (
+            <a href={`/blog/${existing.slug}`} target="_blank" rel="noopener noreferrer" className="self-center text-sm font-medium text-[var(--color-coral-deep)] underline">
+              View live post
+            </a>
+          )}
         </div>
       </form>
     </div>

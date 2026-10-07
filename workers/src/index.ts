@@ -23,6 +23,7 @@ import { handleScheduled } from './scheduled';
 import { logError } from './lib/error-log';
 import { getClientIp } from './lib/login-security';
 import { parseAllowedOrigins, isOriginAllowed } from './lib/cors';
+import { DEFAULT_MAINTENANCE_MESSAGE, getSystemSettings, isMaintenanceActive } from './lib/system-settings';
 
 const app = new Hono<{ Bindings: Env; Variables: Partial<AuthedVariables> }>();
 
@@ -60,6 +61,41 @@ app.use('/api/admin/auth/login', async (c, next) => {
     return c.json({ error: 'Too many login attempts. Please try again shortly.' }, 429);
   }
   await next();
+});
+
+// ---------------------------------------------------------------------------
+// Maintenance mode, enforced at the API as well as in the browser.
+// The public site shows a maintenance page (MaintenanceGate.tsx), but a page
+// that is already open could still submit an order or a form. While
+// maintenance is active, customer-facing WRITE endpoints answer 503.
+// Deliberately NOT blocked: everything under /api/admin (so admins can sign
+// in and switch maintenance off), /api/webhooks (payment providers must be
+// able to confirm payments that were already in flight), /api/settings, and
+// all read-only GETs.
+// ---------------------------------------------------------------------------
+const MAINTENANCE_BLOCKED_PREFIXES = [
+  '/api/orders',
+  '/api/contact',
+  '/api/newsletter',
+  '/api/reviews',
+  '/api/popup-offer',
+  '/api/media/review-upload',
+];
+
+app.use('/api/*', async (c, next) => {
+  const method = c.req.method;
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
+  const path = new URL(c.req.url).pathname;
+  if (!MAINTENANCE_BLOCKED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return next();
+
+  const settings = await getSystemSettings(c.env.DB);
+  if (isMaintenanceActive(settings)) {
+    return c.json(
+      { error: settings.maintenanceMessage || DEFAULT_MAINTENANCE_MESSAGE, maintenance: true },
+      503,
+    );
+  }
+  return next();
 });
 
 app.route('/api/content', contentRoutes);

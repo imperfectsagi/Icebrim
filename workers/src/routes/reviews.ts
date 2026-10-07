@@ -53,7 +53,7 @@ reviews.get('/', async (c) => {
   const productSlug = c.req.query('product');
   const query = productSlug
     ? c.env.DB.prepare(`SELECT * FROM reviews WHERE status = 'approved' AND product_slug = ? ORDER BY created_at DESC`).bind(productSlug)
-    : c.env.DB.prepare(`SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC LIMIT 50`);
+    : c.env.DB.prepare(`SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC LIMIT 1000`);
   const { results } = await query.all<ReviewRow>();
   c.header('Cache-Control', 'public, max-age=60');
   return c.json(results.map(serializeReview));

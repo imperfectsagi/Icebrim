@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { api, ApiError } from '@/lib/api-client';
+import { api, ApiError, ADMIN_SESSION_EXPIRED_EVENT } from '@/lib/api-client';
 
 /**
  * Auth model
@@ -25,7 +25,15 @@ interface AdminUser {
   username: string;
   email: string;
   role: 'admin' | 'editor';
+  /** Inactivity timeout (minutes) from System Settings. */
+  sessionTimeoutMinutes?: number;
 }
+
+/** How often to tell the server the admin is still actively using the panel. */
+const HEARTBEAT_INTERVAL_MS = 60 * 1000;
+/** How often the browser checks whether the idle limit has been reached. */
+const IDLE_CHECK_INTERVAL_MS = 15 * 1000;
+const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll', 'mousemove'] as const;
 
 interface AuthContextValue {
   user: AdminUser | null;
@@ -46,6 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [status, setStatus] = useState<AuthContextValue['status']>('loading');
   const [sessionExpired, setSessionExpired] = useState(false);
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const fetchMe = useCallback(async () => {
     try {
@@ -85,6 +97,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
     return () => clearInterval(interval);
   }, [status]);
+
+  // ---- Inactivity timeout -------------------------------------------------
+  // "Admin session timeout" (System Settings) logs out admins who stop using
+  // the panel. Two layers enforce it: this idle timer signs the admin out
+  // promptly, and the API independently rejects a session that has been idle
+  // too long (workers/src/middleware/auth.ts), so it holds even if this tab
+  // is asleep or the timer never fires.
+  const timeoutMinutes = user?.sessionTimeoutMinutes;
+  useEffect(() => {
+    if (status !== 'authenticated' || !timeoutMinutes) return;
+
+    let lastActivity = Date.now();
+    let lastHeartbeat = Date.now();
+
+    const endSession = () => {
+      api.post('/api/admin/auth/logout').catch(() => {});
+      setUser(null);
+      setStatus('unauthenticated');
+      setSessionExpired(true);
+    };
+
+    const onActivity = () => {
+      const now = Date.now();
+      lastActivity = now;
+      // Real activity (typing, clicking, scrolling) keeps the server-side
+      // session alive too -- including long stretches with no API calls,
+      // like writing a long blog post.
+      if (now - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+        lastHeartbeat = now;
+        api.post('/api/admin/auth/activity').catch(() => {});
+      }
+    };
+
+    const check = () => {
+      if (Date.now() - lastActivity >= timeoutMinutes * 60 * 1000) endSession();
+    };
+
+    for (const evt of ACTIVITY_EVENTS) window.addEventListener(evt, onActivity, { passive: true });
+    document.addEventListener('visibilitychange', check);
+    const timer = setInterval(check, IDLE_CHECK_INTERVAL_MS);
+    return () => {
+      for (const evt of ACTIVITY_EVENTS) window.removeEventListener(evt, onActivity);
+      document.removeEventListener('visibilitychange', check);
+      clearInterval(timer);
+    };
+  }, [status, timeoutMinutes]);
+
+  // The API said 401 to an admin request (session expired / timed out on the
+  // server side): drop to the sign-in page.
+  useEffect(() => {
+    const onExpired = () => {
+      // Only explain "your session ended" if the admin was actually signed in.
+      if (statusRef.current === 'authenticated') setSessionExpired(true);
+      setUser(null);
+      setStatus('unauthenticated');
+    };
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
   const login = useCallback(async (username: string, password: string, captchaToken?: string) => {
     try {

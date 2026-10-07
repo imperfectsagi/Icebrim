@@ -3,6 +3,8 @@ import { Container } from '@/components/ui/primitives';
 import { SeoHead } from '@/components/common/SeoHead';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { ReadMoreSection } from '@/components/common/ReadMoreSection';
+import { FaqContent } from '@/components/common/FaqAccordion';
+import { isFaqPage, parseFaqContent } from '@/lib/html-content';
 import { useCmsPage } from '@/hooks/useContent';
 import NotFoundPage from '@/pages/NotFoundPage';
 
@@ -22,6 +24,11 @@ export default function CustomPage() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !page) return <NotFoundPage />;
 
+  // A page titled/slugged as a FAQ is shown as an expand/collapse accordion
+  // (each heading = a question, the text under it = the answer). If the
+  // content has no recognisable questions it simply renders as a normal page.
+  const showAsFaq = isFaqPage(page.slug, page.title) && parseFaqContent(page.contentHtml).items.length > 0;
+
   return (
     <>
       <SeoHead
@@ -34,7 +41,7 @@ export default function CustomPage() {
       <section className="py-16 md:py-20">
         <Container className="max-w-2xl">
           <h1 className="font-display text-3xl md:text-4xl font-medium mb-8 text-balance">{page.title}</h1>
-          <ReadMoreSection html={page.contentHtml} />
+          {showAsFaq ? <FaqContent html={page.contentHtml} /> : <ReadMoreSection html={page.contentHtml} />}
         </Container>
       </section>
     </>

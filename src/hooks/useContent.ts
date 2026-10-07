@@ -74,6 +74,8 @@ export function useBlogPost(slug: string | undefined) {
         ? api.get(`/api/blog/${slug}`)
         : Promise.resolve(blogPosts.find((p) => p.slug === slug)),
     staleTime: 60 * 1000,
+    // A missing/unpublished slug is a definite answer, not a glitch to retry.
+    retry: false,
   });
 }
 
@@ -149,15 +151,27 @@ export function submitPopupOfferEmail(email: string) {
   return api.post<{ success: boolean; couponCode: string | null }>('/api/popup-offer/emails', { email });
 }
 
+export interface MaintenanceStatus {
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  /** Whole days the admin said maintenance should last (0 = no estimate). */
+  maintenanceDurationDays?: number;
+  /** ISO time maintenance is expected to end, when a number of days was set. */
+  maintenanceEndsAt?: string | null;
+}
+
 export function useMaintenanceStatus() {
-  return useQuery<{ maintenanceMode: boolean; maintenanceMessage: string }>({
+  return useQuery<MaintenanceStatus>({
     queryKey: ['settings', 'maintenance'],
     queryFn: () =>
       hasLiveApi
         ? api.get('/api/settings/maintenance')
         : Promise.resolve({ maintenanceMode: false, maintenanceMessage: '' }),
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    // Re-check often (and when the visitor returns to the tab) so switching
+    // maintenance on/off in the admin panel reaches the live site quickly.
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 }
 

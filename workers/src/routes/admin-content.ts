@@ -8,7 +8,14 @@ import {
   promoBannerWriteSchema,
   deliveryInfoWriteSchema,
   popupOfferWriteSchema,
+  systemSettingsWriteSchema,
 } from '../lib/schemas';
+import {
+  DEFAULT_MAINTENANCE_MESSAGE,
+  applySystemSettingsUpdate,
+  getSystemSettings,
+  isMaintenanceActive,
+} from '../lib/system-settings';
 import { sanitizeBlogHtml } from '../lib/sanitize-html';
 import { logAuditEvent, getClientIp } from '../lib/login-security';
 import { toDecimal } from '../lib/money';
@@ -342,25 +349,32 @@ adminContent.get('/popup-offer/emails', async (c) => {
 });
 
 adminSettings.get('/system', async (c) => {
-  const value = await getSiteContentRaw(c.env.DB, 'system_settings');
-  return c.json(value ?? { maintenanceMode: false, maintenanceMessage: '', sessionTimeoutMinutes: 15 });
+  const settings = await getSystemSettings(c.env.DB);
+  return c.json({ ...settings, maintenanceActive: isMaintenanceActive(settings) });
 });
 
 adminSettings.put('/system', async (c) => {
-  const body = await c.req.text();
-  if (body.length > MAX_CONTENT_JSON_BYTES) return c.json({ error: 'Payload too large' }, 413);
-  const parsed = JSON.parse(body);
-  await upsertSiteContent(c.env.DB, 'system_settings', parsed, c.get('userId'));
+  const body = await c.req.json().catch(() => null);
+  const parsed = systemSettingsWriteSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Invalid system settings' }, 400);
+
+  const previous = await getSystemSettings(c.env.DB);
+  const next = applySystemSettingsUpdate(previous, parsed.data);
+  await upsertSiteContent(c.env.DB, 'system_settings', next, c.get('userId'));
 
   await logAuditEvent(c.env.DB, {
     userId: c.get('userId'),
     action: 'system_settings_updated',
     ip: getClientIp(c.req.raw.headers),
     userAgent: c.req.header('User-Agent') ?? null,
-    metadata: { maintenanceMode: !!(parsed as { maintenanceMode?: boolean }).maintenanceMode },
+    metadata: {
+      maintenanceMode: next.maintenanceMode,
+      maintenanceDurationDays: next.maintenanceDurationDays,
+      sessionTimeoutMinutes: next.sessionTimeoutMinutes,
+    },
   });
 
-  return c.json(parsed);
+  return c.json({ ...next, maintenanceActive: isMaintenanceActive(next) });
 });
 
 // ---------------------------------------------------------------------------
@@ -372,13 +386,24 @@ adminSettings.put('/system', async (c) => {
 export const publicSettings = new Hono<{ Bindings: Env }>();
 
 publicSettings.get('/maintenance', async (c) => {
-  const value = (await getSiteContentRaw(c.env.DB, 'system_settings')) as
-    | { maintenanceMode?: boolean; maintenanceMessage?: string }
-    | null;
-  c.header('Cache-Control', 'public, max-age=30');
+  const row = await getSiteContentWithMeta(c.env.DB, 'system_settings');
+  const settings = await getSystemSettings(c.env.DB);
+  const active = isMaintenanceActive(settings);
+
+  // Revalidate on every use (see lib/site-content.ts) so flipping the switch
+  // in the admin panel takes effect on the very next visitor request instead
+  // of lingering in a cache. The flag is part of the version because an
+  // auto-ending window changes state with time, not with an edit.
+  const version = `${row?.updatedAt ?? 'none'}:${active ? 'on' : 'off'}`;
+  const notModifiedResponse = notModified(c, version);
+  if (notModifiedResponse) return notModifiedResponse;
+  applyRevalidatingCache(c, version);
+
   return c.json({
-    maintenanceMode: value?.maintenanceMode ?? false,
-    maintenanceMessage: value?.maintenanceMessage ?? "We'll be back shortly.",
+    maintenanceMode: active,
+    maintenanceMessage: settings.maintenanceMessage || DEFAULT_MAINTENANCE_MESSAGE,
+    maintenanceDurationDays: active ? settings.maintenanceDurationDays : 0,
+    maintenanceEndsAt: active ? settings.maintenanceEndsAt : null,
   });
 });
 

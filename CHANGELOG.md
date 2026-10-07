@@ -1,5 +1,32 @@
 # Changelog — Icebrim Repair Plan Implementation
 
+## Fixes pass: rich content, blog, FAQ, reviews, shop heading, System Settings
+
+Redeployment steps: `REDEPLOYMENT_GUIDE.md`. New migration: `0014_admin_session_activity.sql`.
+
+**Rich content / formatting**
+- New shared editor (`RichTextEditor.tsx`): Paragraph, H2, H3, bold, italic, bullet/numbered lists, toggleable blockquote, link dialog (validated, optional new tab), undo/redo, clear formatting, HTML view, clean paste from Word/Google Docs. Used by blog, pages, policies and now product descriptions.
+- Root causes fixed: Tailwind's reset removed list bullets/numbers and blockquote spacing; the editor emitted `<div>` blocks that the live site then stripped (paragraphs merged); the editor ignored content that loaded after it mounted (existing posts opened blank).
+- Server sanitiser now normalises (`div`→`p`, `b`/`i`→`strong`/`em`, `h1`→`h2`, empty paragraphs removed, safe `rel`, `mailto:`/`tel:` links) and sanitises product descriptions. `.prose-content` rewritten (responsive heading sizes, lists, quotes, code, long-word wrapping).
+
+**Blog**
+- Featured video/GIF type and video source are now actually saved and returned (columns existed since migration 0002 but were never written).
+- Save errors are shown in the form; duplicate slug on edit returns 409 instead of 500; media type is validated; publish time is stamped when a draft goes live; tags trimmed/de-duplicated.
+- Public list omits article bodies, orders by publish time, and revalidates (ETag) so publishes appear immediately; blog page has "Load more".
+- SEO meta title/description feed `<title>`, meta description, Open Graph/Twitter and JSON-LD; stale `og:image` no longer lingers between pages.
+
+**FAQ** — `FaqAccordion`: accessible tap/click-to-open, again-to-close accordion for pages whose slug/title contains "faq".
+
+**Reviews** — "Read all reviews" opens the full list in place (paged, "Show more"); Write a review (with product picker) sits above the list; same ordering on product pages; API list limit raised from 50.
+
+**Shop page** — heading changed to "Meet your relief".
+
+**System Settings** — maintenance mode with duration in days and optional auto-end, enforced in the browser and at the API (503 for orders/forms); public status revalidates on every request. Admin session timeout enforced server-side (session id in token, idle check in `requireAuth`/refresh, heartbeat on real activity) and in the browser (idle timer). Save shows success/errors; settings validated server-side.
+
+**Verification honesty note:** the build environment could not install the project's npm dependencies, so `npm run build` / `tsc` were not run on the whole project. Verified instead: 33 sanitiser tests, 32 backend tests (session timeout middleware with the real JWT code, maintenance logic), and 81 real-Chromium tests (FAQ accordion, editor, rich-text rendering, reviews panel; desktop and mobile viewports) against the real component code with the third-party UI libraries stubbed. Run the build before deploying.
+
+---
+
 ## Offer popup, checkout promo coupon, mobile hero focal point, content-flash fix
 
 A later, separate pass, not part of the `REPAIR_PLAN.md` numbered fixes

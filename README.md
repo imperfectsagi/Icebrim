@@ -130,4 +130,15 @@ The `public/_redirects` file is already configured for SPA client-side routing.
 
 Once deployed, sign in at `/admin/login` with the credentials created via `create-admin`. The admin panel is a separate route tree with no public header or footer, and its JS bundle is only loaded when visiting `/admin/*`.
 
-For what was added or fixed in the most recent pass (customer offer popup, checkout promo coupon, mobile hero focal point, and a fix for admin-edited content briefly showing its old version on refresh), see `DEPLOYMENT.md` §11 and `CHANGELOG.md`.
+**Latest update (fixes pass):** rich-text formatting across blog/pages/policies/products, blog system fixes (video/GIF, edit, SEO, drafts), FAQ accordion, in-place "Read all reviews" with the form above the list, the "Meet your relief" shop heading, and working System Settings (maintenance mode with a duration in days, real admin inactivity timeout). **To redeploy it, follow [`REDEPLOYMENT_GUIDE.md`](./REDEPLOYMENT_GUIDE.md)** — it includes a migration (`0014`), a build check and a post-deploy checklist.
+
+### Content formatting
+All long-form admin fields (blog content, page content incl. About/FAQ, policy pages, product full description) use one shared editor (`src/features/admin/components/RichTextEditor.tsx`) and one shared stylesheet (`.prose-content` in `src/index.css`). The Worker sanitises on save (`workers/src/lib/sanitize-html.ts`) and the browser sanitises again on display (`src/components/common/RichText.tsx`). Short blurbs (excerpts, hero text, card text, SEO fields) deliberately stay plain text.
+
+### FAQ page
+Create a page whose slug/title contains "faq" (Admin → Pages), write each question as a Heading 3 with its answer beneath, and the live page shows an expand/collapse accordion.
+
+### System Settings
+Maintenance mode (message, duration in days, optional auto-end) and the admin inactivity timeout are stored in `site_content` (`system_settings`) and enforced by `workers/src/lib/system-settings.ts`, `workers/src/index.ts` (API guard) and `workers/src/middleware/auth.ts` (session timeout).
+
+For what was added or fixed in the previous pass (customer offer popup, checkout promo coupon, mobile hero focal point, and a fix for admin-edited content briefly showing its old version on refresh), see `DEPLOYMENT.md` §11 and `CHANGELOG.md`.

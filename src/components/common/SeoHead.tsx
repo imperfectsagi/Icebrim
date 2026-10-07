@@ -21,6 +21,15 @@ function setMeta(attr: 'name' | 'property', key: string, content: string) {
   el.setAttribute('content', content);
 }
 
+function setOrRemoveMeta(attr: 'name' | 'property', key: string, content: string | undefined) {
+  if (content) {
+    // Social crawlers need an absolute image URL.
+    setMeta(attr, key, content.startsWith('/') ? `${SITE_URL}${content}` : content);
+  } else {
+    document.querySelector(`meta[${attr}="${key}"]`)?.remove();
+  }
+}
+
 function setLink(rel: string, href: string) {
   let el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
   if (!el) {
@@ -37,7 +46,16 @@ function setLink(rel: string, href: string) {
  * crawlability the Worker should also render these tags server-side on
  * initial HTML response (see /workers/src/ssr-meta.ts).
  */
-export function SeoHead({ seo, jsonLd }: { seo: SeoMeta; jsonLd?: Record<string, unknown> }) {
+export function SeoHead({
+  seo,
+  jsonLd,
+  type = 'website',
+}: {
+  seo: SeoMeta;
+  jsonLd?: Record<string, unknown>;
+  /** Open Graph type -- 'article' for blog posts. */
+  type?: 'website' | 'article';
+}) {
   useEffect(() => {
     document.title = seo.title;
     setMeta('name', 'description', seo.description);
@@ -47,14 +65,16 @@ export function SeoHead({ seo, jsonLd }: { seo: SeoMeta; jsonLd?: Record<string,
 
     setMeta('property', 'og:title', seo.title);
     setMeta('property', 'og:description', seo.description);
-    setMeta('property', 'og:type', 'website');
+    setMeta('property', 'og:type', type);
     setMeta('property', 'og:url', canonical);
-    if (seo.ogImage) setMeta('property', 'og:image', seo.ogImage);
+    // Set when present, REMOVE when absent -- otherwise the previous page's
+    // image would linger in the tags while navigating around the site.
+    setOrRemoveMeta('property', 'og:image', seo.ogImage);
 
     setMeta('name', 'twitter:card', 'summary_large_image');
     setMeta('name', 'twitter:title', seo.title);
     setMeta('name', 'twitter:description', seo.description);
-    if (seo.ogImage) setMeta('name', 'twitter:image', seo.ogImage);
+    setOrRemoveMeta('name', 'twitter:image', seo.ogImage);
 
     let ldScript = document.getElementById('json-ld') as HTMLScriptElement | null;
     if (jsonLd) {
@@ -68,7 +88,7 @@ export function SeoHead({ seo, jsonLd }: { seo: SeoMeta; jsonLd?: Record<string,
     } else if (ldScript) {
       ldScript.remove();
     }
-  }, [seo, jsonLd]);
+  }, [seo, jsonLd, type]);
 
   return null;
 }

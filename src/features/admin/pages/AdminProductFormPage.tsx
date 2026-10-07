@@ -1,4 +1,4 @@
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { AdminPageHeader, AdminCard, FormRow } from '../components/AdminUi';
 import { Button } from '@/components/ui/Button';
 import { ImageUploadField } from '../components/ImageUploadField';
+import { RichTextEditor } from '../components/RichTextEditor';
 import { useAdminProducts, useCreateProduct, useUpdateProduct } from '../hooks/useAdminProducts';
 import { useEffect } from 'react';
 import { slugify } from '@/lib/slugify';
@@ -226,9 +227,17 @@ export function AdminProductFormPage() {
           <FormRow label="Short description" error={errors.shortDescription?.message}>
             <textarea rows={2} className="form-input" {...register('shortDescription')} />
           </FormRow>
-          <FormRow label="Full description" error={errors.description?.message}>
-            <textarea rows={6} className="form-input" {...register('description')} />
-          </FormRow>
+          <div>
+            <p className="block text-sm font-medium mb-1.5">Full description</p>
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <RichTextEditor value={field.value ?? ''} onChange={field.onChange} ariaLabel="Full product description" minHeight={200} />
+              )}
+            />
+            {errors.description && <p className="text-xs text-[var(--color-coral-deep)] mt-1">{errors.description.message}</p>}
+          </div>
         </AdminCard>
 
         <AdminCard className="space-y-4">

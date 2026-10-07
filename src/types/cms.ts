@@ -318,6 +318,7 @@ export interface BlogPost {
   author: string;
   status: 'draft' | 'published';
   publishedAt: string;
+  updatedAt?: string;
   seo: SeoMeta;
 }
 

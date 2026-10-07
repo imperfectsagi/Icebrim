@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '../components/RichTextEditor';
 import { useAdminPage, useCreatePage, useUpdatePage } from '../hooks/useAdminPages';
 import { slugify } from '@/lib/slugify';
+import { isFaqPage } from '@/lib/html-content';
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -130,7 +131,16 @@ export function AdminPageFormPage() {
             control={control}
             name="contentHtml"
             render={({ field }) => (
-              <RichTextEditor value={field.value} onChange={field.onChange} ariaLabel={`${watch('title') || 'Page'} content`} />
+              <RichTextEditor
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                ariaLabel={`${watch('title') || 'Page'} content`}
+                hint={
+                  isFaqPage(watch('slug') ?? '', watch('title') ?? '')
+                    ? 'FAQ page: write each question as a Heading 3 and put its answer in the paragraphs below it. On the live site every question becomes an expand/collapse item.'
+                    : undefined
+                }
+              />
             )}
           />
         </AdminCard>

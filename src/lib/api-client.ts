@@ -21,6 +21,9 @@
 // against the wrong backend.
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
 
+/** Fired on `window` when an admin API call comes back 401. See AuthContext. */
+export const ADMIN_SESSION_EXPIRED_EVENT = 'icebrim:admin-session-expired';
+
 export class ApiError extends Error {
   status: number;
   /** Full parsed JSON error body, when the response had one. Lets callers read structured fields beyond just `error` (e.g. checkout's 409 stock-conflict response includes `productId`/`availableStock` so the UI can react precisely, not just display text). */
@@ -51,6 +54,13 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   });
 
   if (!response.ok) {
+    // An admin request rejected with 401 means the admin session is over
+    // (expired, signed out elsewhere, or timed out from inactivity). Tell the
+    // admin panel so it can send them to the sign-in page instead of just
+    // showing a failed request. Login/refresh/me are handled by AuthContext.
+    if (response.status === 401 && path.startsWith('/api/admin/') && !path.startsWith('/api/admin/auth/')) {
+      window.dispatchEvent(new CustomEvent(ADMIN_SESSION_EXPIRED_EVENT));
+    }
     let message = `Request failed with status ${response.status}`;
     let body: unknown;
     try {

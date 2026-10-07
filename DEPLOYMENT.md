@@ -54,7 +54,7 @@ npx wrangler r2 bucket create icebrim-media
 npx wrangler d1 migrations apply icebrim-db --remote
 ```
 
-This applies every migration in `workers/db/migrations/` in order: `0001_initial_schema.sql` through `0012_about_page_cms.sql` at the time of writing (see section 10 below for what each of migrations 0008–0012 adds). Wrangler tracks which migrations have already run, so it's always safe to re-run this command after pulling new changes — it only applies what's new.
+This applies every migration in `workers/db/migrations/` in order: `0001_initial_schema.sql` through `0014_admin_session_activity.sql` at the time of writing (see section 10 for migrations 0008–0012, §11 for 0013 and §12 for 0014). Wrangler tracks which migrations have already run, so it's always safe to re-run this command after pulling new changes — it only applies what's new.
 
 (Use `--local` instead when testing with `wrangler dev` locally.)
 
@@ -437,4 +437,20 @@ Directly below the existing checkout coupon input and Apply button (both unchang
 
 Nothing else changes: the CMS/admin system, the coupon system, and the site's existing design/layout are untouched by this fix.
 
+---
+
+## 12. What was added in this pass (formatting, blog, FAQ, reviews, System Settings)
+
+The full step-by-step redeployment procedure, what changed, and the post-deploy checklist are in
+**[`REDEPLOYMENT_GUIDE.md`](./REDEPLOYMENT_GUIDE.md)**. Deployment-relevant facts in brief:
+
+* **One new migration, `0014_admin_session_activity.sql`** — adds `refresh_tokens.last_activity_at`
+  (nullable, additive). Apply with `npx wrangler d1 migrations apply icebrim-db --remote`.
+* **Deploy order:** Worker first, then the frontend.
+* **No new secrets, bindings or environment variables.**
+* **Admins must sign in once more** after the Worker deploys (sessions now carry a session id used
+  for the inactivity timeout).
+* **New API behaviour:** while maintenance mode is on, `POST` to `/api/orders*`, `/api/contact`,
+  `/api/newsletter`, `/api/reviews`, `/api/popup-offer*` and `/api/media/review-upload` return
+  `503`. `/api/admin/*`, `/api/webhooks/*`, `/api/settings/*` and all `GET`s are never blocked.
 

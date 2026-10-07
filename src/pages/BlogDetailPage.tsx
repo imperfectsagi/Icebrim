@@ -15,19 +15,36 @@ export default function BlogDetailPage() {
   if (isFetched && !post) return <Navigate to="/blog" replace />;
   if (!post) return null;
 
+  const isVideo = post.featuredMediaType === 'video' && !!post.featuredVideoSrc;
+  // Social/search image: the poster/image when there is one (a video file
+  // can't be used as an og:image).
+  const shareImage = post.featuredImage.src || undefined;
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
-    headline: post.title,
-    description: post.excerpt,
-    image: post.featuredImage.src,
+    headline: post.seo.title || post.title,
+    description: post.seo.description || post.excerpt,
+    ...(shareImage ? { image: shareImage } : {}),
     author: { '@type': 'Organization', name: post.author },
     datePublished: post.publishedAt,
+    ...(post.updatedAt ? { dateModified: post.updatedAt } : {}),
   };
 
   return (
     <>
-      <SeoHead seo={{ ...post.seo, canonicalPath: `/blog/${post.slug}` }} jsonLd={jsonLd} />
+      <SeoHead
+        // The SEO meta title/description entered in the admin are what end up
+        // in <title>, the meta description and the Open Graph/Twitter tags.
+        seo={{
+          title: post.seo.title || post.title,
+          description: post.seo.description || post.excerpt,
+          canonicalPath: `/blog/${post.slug}`,
+          ogImage: shareImage,
+        }}
+        jsonLd={jsonLd}
+        type="article"
+      />
 
       <article className="py-10 md:py-14">
         <Container className="max-w-3xl">
@@ -50,9 +67,10 @@ export default function BlogDetailPage() {
           </p>
 
           <div className="rounded-[var(--radius-card)] overflow-hidden aspect-[16/9] mb-10">
-            {post.featuredMediaType === 'video' && post.featuredVideoSrc ? (
+            {isVideo ? (
               <video
                 src={post.featuredVideoSrc}
+                aria-label={post.featuredImage.alt || post.title}
                 poster={post.featuredImage.src || undefined}
                 className="h-full w-full object-cover"
                 controls

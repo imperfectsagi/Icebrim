@@ -20,6 +20,7 @@ import {
   getClientIp,
 } from '../lib/login-security';
 import { requireAuth, type AuthedVariables } from '../middleware/auth';
+import { getSystemSettings } from '../lib/system-settings';
 
 const auth = new Hono<{ Bindings: Env; Variables: AuthedVariables }>();
 
@@ -93,21 +94,26 @@ auth.post('/login', async (c) => {
   await resetFailedAttempts(c.env.DB, user.id);
   await logAuditEvent(c.env.DB, { userId: user.id, action: 'login_success', ip, userAgent });
 
-  const accessToken = await signJwt({ sub: user.id, role: user.role }, c.env.JWT_ACCESS_SECRET, ACCESS_TOKEN_TTL_SECONDS);
+  // The refresh_tokens row id doubles as the admin SESSION id: it is carried
+  // in the access token (`sid`) so middleware/auth.ts can look the session up
+  // and enforce the System Settings inactivity timeout.
+  const sessionId = crypto.randomUUID();
+  const accessToken = await signJwt({ sub: user.id, role: user.role, sid: sessionId }, c.env.JWT_ACCESS_SECRET, ACCESS_TOKEN_TTL_SECONDS);
   const refreshToken = crypto.randomUUID() + crypto.randomUUID(); // opaque random token, not a JWT
   const refreshTokenHash = await hashRefreshToken(refreshToken);
 
   await c.env.DB.prepare(
-    `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, user_agent, ip_address)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, user_agent, ip_address, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
-      crypto.randomUUID(),
+      sessionId,
       user.id,
       refreshTokenHash,
       new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString(),
       userAgent,
       ip,
+      new Date().toISOString(),
     )
     .run();
 
@@ -115,7 +121,14 @@ auth.post('/login', async (c) => {
     c.header('Set-Cookie', cookie, { append: true });
   }
 
-  return c.json({ id: user.id, username: user.username, email: user.email, role: user.role });
+  const settings = await getSystemSettings(c.env.DB);
+  return c.json({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    sessionTimeoutMinutes: settings.sessionTimeoutMinutes,
+  });
 });
 
 auth.post('/refresh', async (c) => {
@@ -124,22 +137,52 @@ auth.post('/refresh', async (c) => {
 
   const tokenHash = await hashRefreshToken(refreshToken);
   const row = await c.env.DB.prepare(
-    `SELECT rt.id as token_id, rt.expires_at, rt.revoked_at, u.id, u.username, u.email, u.role
+    `SELECT rt.id as token_id, rt.expires_at, rt.revoked_at, rt.last_activity_at, rt.created_at,
+            u.id, u.username, u.email, u.role
      FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
      WHERE rt.token_hash = ?`,
   )
     .bind(tokenHash)
-    .first<{ token_id: string; expires_at: string; revoked_at: string | null; id: string; username: string; email: string; role: 'admin' | 'editor' }>();
+    .first<{
+      token_id: string;
+      expires_at: string;
+      revoked_at: string | null;
+      last_activity_at: string | null;
+      created_at: string;
+      id: string;
+      username: string;
+      email: string;
+      role: 'admin' | 'editor';
+    }>();
 
   if (!row || row.revoked_at || new Date(row.expires_at).getTime() < Date.now()) {
     return c.json({ error: 'Session expired' }, 401);
   }
 
+  // The silent background refresh must NOT count as activity (it fires on a
+  // timer whether or not anyone is at the keyboard), but it must respect the
+  // inactivity timeout -- otherwise an idle tab would renew itself forever.
+  const settings = await getSystemSettings(c.env.DB);
+  const createdMs = Date.parse(row.created_at.includes('T') ? row.created_at : `${row.created_at.replace(' ', 'T')}Z`);
+  const lastActiveMs = row.last_activity_at ? Date.parse(row.last_activity_at) : createdMs;
+  if (Date.now() - lastActiveMs > settings.sessionTimeoutMinutes * 60_000) {
+    await c.env.DB.prepare(`UPDATE refresh_tokens SET revoked_at = datetime('now') WHERE id = ? AND revoked_at IS NULL`)
+      .bind(row.token_id)
+      .run();
+    return c.json({ error: 'You were signed out after a period of inactivity.', reason: 'idle' }, 401);
+  }
+
   const secureCookie = new URL(c.req.url).protocol === 'https:';
-  const accessToken = await signJwt({ sub: row.id, role: row.role }, c.env.JWT_ACCESS_SECRET, ACCESS_TOKEN_TTL_SECONDS);
+  const accessToken = await signJwt({ sub: row.id, role: row.role, sid: row.token_id }, c.env.JWT_ACCESS_SECRET, ACCESS_TOKEN_TTL_SECONDS);
   c.header('Set-Cookie', setAuthCookies(accessToken, refreshToken, { secure: secureCookie, sameSite: 'None' })[0], { append: true });
 
-  return c.json({ id: row.id, username: row.username, email: row.email, role: row.role });
+  return c.json({
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    role: row.role,
+    sessionTimeoutMinutes: settings.sessionTimeoutMinutes,
+  });
 });
 
 auth.post('/logout', async (c) => {
@@ -163,8 +206,14 @@ auth.get('/me', requireAuth, async (c) => {
     .bind(userId)
     .first<{ id: string; username: string; email: string; role: string }>();
   if (!user) return c.json({ error: 'Not found' }, 404);
-  return c.json(user);
+  return c.json({ ...user, sessionTimeoutMinutes: c.get('sessionTimeoutMinutes') });
 });
+
+// Heartbeat sent by the admin panel while the admin is actually using it
+// (typing, clicking, scrolling). requireAuth already records the activity;
+// this endpoint exists so the browser can keep the session alive during long
+// stretches with no API calls -- e.g. writing a long blog post.
+auth.post('/activity', requireAuth, (c) => c.json({ ok: true, sessionTimeoutMinutes: c.get('sessionTimeoutMinutes') }));
 
 // Exposed for debugging/ops use only; not called by the frontend directly.
 auth.get('/verify-token', async (c) => {

@@ -3,6 +3,7 @@ import { useParams, Link, Navigate } from 'react-router-dom';
 import { Container } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { StarRating } from '@/components/ui/StarRating';
+import { RichText } from '@/components/common/RichText';
 import { ReviewCard } from '@/components/common/ReviewCard';
 import { ReviewForm } from '@/components/common/ReviewForm';
 import { DeliveryInfo } from '@/components/common/DeliveryInfo';
@@ -240,24 +241,28 @@ export default function ProductDetailPage() {
           {/* Full description */}
           <div className="mt-16 max-w-3xl">
             <h2 className="text-2xl font-medium mb-4">About this product</h2>
-            <p className="text-[var(--color-ink-soft)] leading-relaxed">{product.description}</p>
+            <RichText html={product.description} className="prose-content" />
           </div>
 
           {/* Reviews */}
           <div className="mt-20 max-w-4xl">
             <h2 className="text-2xl font-medium mb-8">Customer Reviews</h2>
+
+            {/* Write a review sits ABOVE the list so customers don't have to scroll past every review. */}
+            <h3 className="text-lg font-semibold mb-5">Write a review</h3>
+            <div className="mb-12">
+              <ReviewForm productSlug={product.slug} />
+            </div>
+
             {productReviews.length > 0 ? (
-              <div className="grid md:grid-cols-2 gap-5 mb-12">
+              <div className="grid md:grid-cols-2 gap-5">
                 {productReviews.map((review) => (
                   <ReviewCard key={review.id} review={review} />
                 ))}
               </div>
             ) : (
-              <p className="text-[var(--color-ink-soft)] mb-12">Be the first to review this product.</p>
+              <p className="text-[var(--color-ink-soft)]">Be the first to review this product.</p>
             )}
-
-            <h3 className="text-lg font-semibold mb-5">Write a review</h3>
-            <ReviewForm productSlug={product.slug} />
           </div>
         </Container>
       </section>

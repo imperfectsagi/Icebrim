@@ -78,7 +78,7 @@ export function ImageUploadField({
       return;
     }
     if ((isVideo || isGif) && !allowsVideo) {
-      setError('Video and GIF are not supported here -- only images.');
+      setError('Video and GIF are not supported here — only images.');
       return;
     }
     if (isImage && file.size > MAX_IMAGE_SIZE_BYTES) {
@@ -86,7 +86,7 @@ export function ImageUploadField({
       return;
     }
     if (isVideo && file.size > MAX_VIDEO_SIZE_BYTES) {
-      setError('Video must be smaller than 15MB. Compress it first -- there is no automatic video compression.');
+      setError('Video must be smaller than 15MB. Compress it first — there is no automatic video compression.');
       return;
     }
     if (isGif && file.size > MAX_GIF_SIZE_BYTES) {

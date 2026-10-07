@@ -1,5 +1,14 @@
 # Changelog — Icebrim Repair Plan Implementation
 
+## Reviews page, masonry review layout, offer popup behaviour, menu order
+
+- **Read all reviews** (home page) now opens a dedicated `/reviews` page ("Real customers — Trusted across the UK", rating summary, then every review, "Show more reviews" for 12 at a time) instead of the in-page "All customer reviews" list. Files: `ReviewsSection.tsx`, new `pages/ReviewsPage.tsx`, `router.tsx`; `reviews` added to `RESERVED_PAGE_SLUGS` and the sitemap. The heading text still comes from Admin → Home Sections → Reviews.
+- **Review layout**: review cards were stretched to the height of the tallest card in their row (CSS grid), so a video/photo/long review left a large blank space under its neighbours. New `MasonryGrid.tsx` stacks cards per column, so each card is exactly as tall as its content (1 column on phones, 2 on tablets, 3 on desktop; newest-first order is kept). Used on the home page, `/reviews` and product pages. `ReviewCard.tsx`: no forced height, media fills the card width, long words/line breaks wrap properly.
+- **Offer popup not showing**: closing the popup (or submitting the form) used to save a permanent flag in `localStorage`, so it never came back for that browser. That flag is no longer used, and the old one is cleared on load.
+- **Offer popup behaviour**: appears 5 seconds after the site loads; once closed (cross, "No thanks", Escape or clicking outside) it stays closed for that visit only (`sessionStorage`); on the next visit it appears again after 5 seconds. It still only shows when it is switched on in Admin → Offer Popup **and** the selected coupon is currently valid (active, not expired, usage limit not reached).
+- **Header menu order**: Home, Products, Blog, About, Contact (desktop and mobile menu).
+- **Wording**: free-delivery threshold made consistent at £70 (the checkout and the server already use £70; the Terms text, Products page description and seed files said £30); "5-10" → "5–10"; "--" shown to visitors/admins replaced with "—"; admin hint for page links corrected (`/shipping-info`, not `/pages/shipping-info`).
+
 ## Reviews: no "Write a review" in "Read all reviews", editable review date
 
 - Homepage > "Read all reviews" now opens only the "All customer reviews" list. The "Write a review" form was removed from that panel (`ReviewsSection.tsx`). The product page's "Write a review" form is untouched.

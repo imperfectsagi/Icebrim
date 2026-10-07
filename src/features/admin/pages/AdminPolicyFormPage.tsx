@@ -73,7 +73,7 @@ function AdminPolicyForm({ policyKey }: { policyKey: PolicyPageKey }) {
     <div>
       <AdminPageHeader
         title={LABELS[policyKey]}
-        description="Changes here go live on the public site immediately after saving -- no code deployment needed."
+        description="Changes here go live on the public site immediately after saving — no code deployment needed."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6 max-w-3xl">

@@ -108,8 +108,8 @@ export function AdminPromoBannerPage() {
                 error={errors.linkSlug?.message}
                 hint={
                   linkType === 'product'
-                    ? 'e.g. cooling-relief-cap -- links to /products/cooling-relief-cap'
-                    : 'e.g. shipping-info -- links to /pages/shipping-info'
+                    ? 'e.g. cooling-relief-cap — links to /products/cooling-relief-cap'
+                    : 'e.g. shipping-info — links to /shipping-info'
                 }
               >
                 <input className="form-input" {...register('linkSlug')} />

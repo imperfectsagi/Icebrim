@@ -17,7 +17,7 @@ export default function ProductsPage() {
         seo={{
           title: 'Shop Cooling Relief Caps | Icebrim',
           description:
-            'Shop reusable cooling relief caps for migraines, tension headaches, and menopause hot flushes. Free UK delivery over £30.',
+            'Shop reusable cooling relief caps for migraines, tension headaches, and menopause hot flushes. Free UK delivery over £70.',
           canonicalPath: '/products',
         }}
       />

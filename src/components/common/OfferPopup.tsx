@@ -6,7 +6,19 @@ import { usePopupOffer, submitPopupOfferEmail } from '@/hooks/useContent';
 import { ApiError } from '@/lib/api-client';
 import { formatPrice } from '@/lib/utils';
 
-const DISMISSED_KEY = 'icebrim_popup_offer_dismissed';
+// "Closed" is remembered for the current browsing session only (this tab, until
+// it is closed), so the popup does not nag while the visitor browses around --
+// but it comes back, after the delay below, on their next visit. It must NEVER
+// be stored in localStorage: that survives forever, so one click on the cross
+// would hide the popup for that visitor permanently (and made the popup look
+// "broken" for anyone who had ever closed it while testing).
+const SESSION_CLOSED_KEY = 'icebrim_popup_offer_closed_session';
+// Old versions saved a permanent "dismissed" flag here. It is cleared on load
+// so visitors (and admins testing the popup) who already have it are not
+// locked out of the popup forever.
+const LEGACY_DISMISSED_KEY = 'icebrim_popup_offer_dismissed';
+/** The popup appears this long after the website loads. */
+const SHOW_DELAY_MS = 5000;
 // Read by CheckoutPage.tsx to prefill + auto-apply the coupon the popup
 // showed, using the site's EXISTING checkout coupon input/Apply flow (see
 // CheckoutPage.tsx's handleApplyCoupon) -- this key is just how the
@@ -25,22 +37,35 @@ function formatDiscount(coupon: { discountType: 'percentage' | 'fixed'; discount
   return coupon.discountType === 'percentage' ? `${coupon.discountValue}% off` : `${formatPrice(coupon.discountValue)} off`;
 }
 
+function readClosedThisSession(): boolean {
+  try {
+    return window.sessionStorage.getItem(SESSION_CLOSED_KEY) === '1';
+  } catch {
+    // sessionStorage unavailable -- the in-memory `closed` state below still
+    // keeps the popup closed until the page is reloaded.
+    return false;
+  }
+}
+
 /**
- * Site-wide promotional popup shown on load (requirement #1). Collects
- * an email, then reveals the admin-selected EXISTING coupon (never a
+ * Site-wide promotional popup. Behaviour:
+ *  - appears SHOW_DELAY_MS (5 seconds) after the website loads;
+ *  - once the visitor closes it (cross, "No thanks", Escape, backdrop) it stays
+ *    closed for the rest of that browsing session;
+ *  - on their next visit (new session) it appears again after the same delay --
+ *    closing it never hides it permanently.
+ * It collects an email, then reveals the admin-selected EXISTING coupon (never a
  * second/parallel coupon system -- see AdminPopupPage.tsx and
- * workers/src/routes/admin-content.ts's /popup-offer endpoints, which
- * only ever resolve a coupon id already living in the real coupons
- * table). Renders nothing if the admin has it disabled, if there's
- * currently no valid coupon configured for it to show, or if this
- * visitor has already dismissed/submitted it this browsing session (see
- * DISMISSED_KEY -- same "don't nag every page load" localStorage pattern
- * already used by CookieConsent.tsx).
+ * workers/src/routes/admin-content.ts's /popup-offer endpoints, which only ever
+ * resolve a coupon id already living in the real coupons table). Renders
+ * nothing if the admin has it switched off, or if there is currently no valid
+ * coupon configured for it to show.
  */
 export function OfferPopup() {
   const { data, isLoading } = usePopupOffer();
   const navigate = useNavigate();
-  const [dismissed, setDismissed] = useState(true); // default hidden until the localStorage check below confirms it's safe to show
+  const [closed, setClosed] = useState(readClosedThisSession);
+  const [delayElapsed, setDelayElapsed] = useState(false);
   const [stage, setStage] = useState<Stage>('form');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -51,25 +76,33 @@ export function OfferPopup() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // Remove the permanent flag left behind by older versions (see above).
   useEffect(() => {
     try {
-      setDismissed(window.localStorage.getItem(DISMISSED_KEY) === '1');
+      window.localStorage.removeItem(LEGACY_DISMISSED_KEY);
     } catch {
-      // localStorage unavailable -- fail open (don't show) rather than
-      // risk re-showing on every single navigation for these visitors.
-      setDismissed(true);
+      // ignore -- nothing to clean up if storage is unavailable
     }
   }, []);
 
-  const visible = !isLoading && !dismissed && !!data?.enabled && !!data.coupon;
+  // Show the popup SHOW_DELAY_MS after the website loads. This component lives in
+  // the site Layout, so it stays mounted while the visitor navigates between
+  // pages and the timer is not restarted on each page change.
+  useEffect(() => {
+    if (closed) return;
+    const timer = window.setTimeout(() => setDelayElapsed(true), SHOW_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [closed]);
+
+  const visible = delayElapsed && !closed && !isLoading && !!data?.enabled && !!data.coupon;
 
   const close = () => {
     try {
-      window.localStorage.setItem(DISMISSED_KEY, '1');
+      window.sessionStorage.setItem(SESSION_CLOSED_KEY, '1');
     } catch {
-      // ignore persistence failure; popup will simply reappear next visit
+      // ignore persistence failure; the popup still stays closed until the page is reloaded
     }
-    setDismissed(true);
+    setClosed(true);
   };
 
   // Focus trap + Escape-to-close + focus restore, same pattern as
@@ -128,7 +161,6 @@ export function OfferPopup() {
       setRevealedCode(code);
       try {
         window.localStorage.setItem(POPUP_COUPON_STORAGE_KEY, code);
-        window.localStorage.setItem(DISMISSED_KEY, '1');
       } catch {
         // ignore persistence failure -- the coupon is still shown/copyable below for this page view
       }
@@ -228,7 +260,7 @@ export function OfferPopup() {
             <h2 className="font-display text-xl font-medium mb-1">You're in!</h2>
             <p className="text-sm text-[var(--color-ink-soft)] mb-5">
               {formatDiscount(coupon)}
-              {coupon.minOrderSubtotal ? ` on orders over ${formatPrice(coupon.minOrderSubtotal)}` : ''} -- use the code
+              {coupon.minOrderSubtotal ? ` on orders over ${formatPrice(coupon.minOrderSubtotal)}` : ''} — use the code
               below at checkout.
             </p>
 

@@ -275,7 +275,7 @@ export const policyPageWriteSchema = z.object({
 // segments in src/router.tsx.
 // ---------------------------------------------------------------------------
 export const RESERVED_PAGE_SLUGS = [
-  'about', 'products', 'blog', 'contact', 'checkout',
+  'about', 'products', 'reviews', 'blog', 'contact', 'checkout',
   'order-confirmation', 'order-status', 'privacy-policy', 'terms',
   'cookie-policy', 'return-refund-policy', 'admin', 'pages', 'api', 'media',
 ] as const;

@@ -86,7 +86,7 @@ export default function OrderConfirmationPage() {
               <h1 className="font-display text-2xl font-medium mb-2">Confirming payment…</h1>
               <p className="text-[var(--color-ink-soft)] mb-6">
                 Order <strong>{order.orderNumber}</strong> is being confirmed. This page will update automatically
-                -- you can also safely close it, we'll email you once it's confirmed.
+                — you can also safely close it, and we'll email you once it's confirmed.
               </p>
             </>
           )}

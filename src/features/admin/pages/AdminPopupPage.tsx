@@ -118,7 +118,7 @@ export function AdminPopupPage() {
             error={errors.couponId?.message}
             hint={
               activeCoupons.length === 0
-                ? 'No active coupons yet -- create one on the Coupons page first.'
+                ? 'No active coupons yet — create one on the Coupons page first.'
                 : 'Only active coupons are listed. The same coupon also appears at checkout as the promotional offer.'
             }
           >

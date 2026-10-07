@@ -18,7 +18,7 @@ export function AdminPagesPage() {
     <div>
       <AdminPageHeader
         title="Pages"
-        description="Manage standalone pages -- built-in pages like About, plus any custom pages you add (e.g. FAQ, shipping info). Each is published at its own URL, e.g. /about or /faq."
+        description="Manage standalone pages — built-in pages like About, plus any custom pages you add (e.g. FAQ, shipping info). Each is published at its own URL, e.g. /about or /faq."
         action={{ label: 'Add Page', onClick: () => navigate('/admin/pages/new') }}
       />
 
@@ -51,8 +51,8 @@ export function AdminPagesPage() {
                   disabled={setStatus.isPending}
                   title={
                     p.status === 'published'
-                      ? `Click to disable -- /${p.slug} will show a not-found page`
-                      : `Click to enable -- publishes at /${p.slug}`
+                      ? `Click to disable — /${p.slug} will show a not-found page`
+                      : `Click to enable — publishes at /${p.slug}`
                   }
                 >
                   <Badge tone={p.status === 'published' ? 'ice' : 'coral'}>

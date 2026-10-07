@@ -149,7 +149,7 @@ export function AdminBlogFormPage() {
           <FormRow label="URL slug" hint={`icebrim.com/blog/${watch('slug') || '...'}`} error={errors.slug?.message}>
             <input className="form-input" {...register('slug')} />
           </FormRow>
-          <FormRow label="Excerpt" hint={`${(watch('excerpt') ?? '').length}/300 -- shown on blog cards`} error={errors.excerpt?.message}>
+          <FormRow label="Excerpt" hint={`${(watch('excerpt') ?? '').length}/300 — shown on blog cards`} error={errors.excerpt?.message}>
             <textarea rows={2} className="form-input" {...register('excerpt')} />
           </FormRow>
         </AdminCard>
@@ -247,10 +247,10 @@ export function AdminBlogFormPage() {
 
         <AdminCard className="space-y-4">
           <h2 className="font-semibold">SEO</h2>
-          <FormRow label="SEO meta title" hint={`${(watch('seoTitle') ?? '').length}/70 -- used as the browser/search title`} error={errors.seoTitle?.message}>
+          <FormRow label="SEO meta title" hint={`${(watch('seoTitle') ?? '').length}/70 — used as the browser/search title`} error={errors.seoTitle?.message}>
             <input className="form-input" {...register('seoTitle')} />
           </FormRow>
-          <FormRow label="SEO meta description" hint={`${(watch('seoDescription') ?? '').length}/160 -- used as the search/social description`} error={errors.seoDescription?.message}>
+          <FormRow label="SEO meta description" hint={`${(watch('seoDescription') ?? '').length}/160 — used as the search/social description`} error={errors.seoDescription?.message}>
             <textarea rows={2} className="form-input" {...register('seoDescription')} />
           </FormRow>
         </AdminCard>

@@ -6,16 +6,32 @@ import type { Review } from '@/types/cms';
 export function ReviewCard({ review }: { review: Review }) {
   const mediaImages = review.mediaImages ?? [];
   return (
-    <Card className="p-6 h-full flex flex-col">
+    // No fixed/stretched height: the card is exactly as tall as its content, so
+    // MasonryGrid can stack cards of different heights without blank gaps.
+    <Card className="p-6 flex flex-col">
       <StarRating value={review.rating} className="mb-4" />
-      <h3 className="font-semibold mb-2">{review.title}</h3>
-      <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed mb-4">{review.body}</p>
+      <h3 className="font-semibold mb-2 break-words">{review.title}</h3>
+      <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed mb-4 whitespace-pre-line break-words">
+        {review.body}
+      </p>
       {review.mediaType && review.mediaType !== 'none' && review.mediaSrc && (
-        <div className="mb-3 rounded-lg overflow-hidden max-w-xs">
+        <div className="mb-3 rounded-lg overflow-hidden">
           {review.mediaType === 'video' ? (
-            <video src={review.mediaSrc} className="w-full h-auto" controls muted playsInline preload="metadata" />
+            <video
+              src={review.mediaSrc}
+              className="block w-full h-auto max-h-[28rem] bg-black object-contain"
+              controls
+              muted
+              playsInline
+              preload="metadata"
+            />
           ) : (
-            <img src={review.mediaSrc} alt={`Photo from ${review.authorName}'s review`} loading="lazy" className="w-full h-auto object-cover" />
+            <img
+              src={review.mediaSrc}
+              alt={`Photo from ${review.authorName}'s review`}
+              loading="lazy"
+              className="block w-full h-auto object-cover"
+            />
           )}
         </div>
       )}

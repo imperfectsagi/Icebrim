@@ -244,7 +244,7 @@ export function AdminBannerPage() {
               </FormRow>
               <FormRow
                 label="Mobile image (optional)"
-                hint="Composed specifically for narrow screens -- not just the desktop image cropped. If left empty, mobile visitors see the desktop image (which may crop poorly on narrow screens)."
+                hint="Composed specifically for narrow screens — not just the desktop image cropped. If left empty, mobile visitors see the desktop image (which may crop poorly on narrow screens)."
               >
                 <ImageUploadField
                   value={watch('imageMobileSrc')}

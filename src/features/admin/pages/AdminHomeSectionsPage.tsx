@@ -67,7 +67,7 @@ export function AdminHomeSectionsPage() {
     <div>
       <AdminPageHeader
         title="Home Sections"
-        description="Edit every section of the home page below the hero banner (edit that under Admin → Banner) -- How It Works, Why Icebrim, About preview, Featured Products, Reviews, Blog, and the closing CTA banner. Each section can be shown or hidden independently."
+        description="Edit every section of the home page below the hero banner (edit that under Admin → Banner) — How It Works, Why Icebrim, About preview, Featured Products, Reviews, Blog, and the closing CTA banner. Each section can be shown or hidden independently."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8 max-w-3xl">

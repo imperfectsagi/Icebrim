@@ -1,24 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
 import { Container, SectionHeading } from '@/components/ui/primitives';
 import { StarRating } from '@/components/ui/StarRating';
 import { ReviewCard } from '@/components/common/ReviewCard';
+import { MasonryGrid } from '@/components/common/MasonryGrid';
 import { Button } from '@/components/ui/Button';
 import { useApprovedReviews } from '@/hooks/useContent';
 import type { ReviewsSectionContent } from '@/types/cms';
 
-const PAGE_SIZE = 12;
-const PANEL_ID = 'all-reviews';
-
+/**
+ * Home page reviews preview. "Read all reviews" opens the dedicated
+ * /reviews page (ReviewsPage.tsx), which has the same "Real customers /
+ * Trusted across the UK" heading and rating followed by every review.
+ */
 export function ReviewsSection({ content }: { content: ReviewsSectionContent }) {
   const { data: reviews } = useApprovedReviews();
-  const [showAll, setShowAll] = useState(() => typeof window !== 'undefined' && window.location.hash === `#${PANEL_ID}`);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  // Opening via a #all-reviews link (or the button) scrolls the panel into view.
-  useEffect(() => {
-    if (showAll) panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [showAll]);
 
   if (!content.visible) return null;
 
@@ -38,45 +32,16 @@ export function ReviewsSection({ content }: { content: ReviewsSectionContent }) 
           <StarRating value={avg} count={all.length} className="mt-4" size={18} />
         </div>
 
-        {/* Preview cards -- the full list opens below when "Read all reviews" is pressed. */}
-        {!showAll && (
-          <div className="grid md:grid-cols-3 gap-5">
-            {shown.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))}
-          </div>
-        )}
+        <MasonryGrid>
+          {shown.map((review) => (
+            <ReviewCard key={review.id} review={review} />
+          ))}
+        </MasonryGrid>
 
         <div className="flex justify-center mt-10">
-          <Button
-            type="button"
-            variant="secondary"
-            aria-expanded={showAll}
-            aria-controls={PANEL_ID}
-            onClick={() => setShowAll((v) => !v)}
-          >
-            {showAll ? 'Hide all reviews' : `Read all reviews${all.length > shown.length ? ` (${all.length})` : ''}`}
+          <Button href="/reviews" variant="secondary">
+            {`Read all reviews${all.length > shown.length ? ` (${all.length})` : ''}`}
           </Button>
-        </div>
-
-        <div id={PANEL_ID} ref={panelRef} hidden={!showAll} className="mt-12 scroll-mt-24">
-          {showAll && (
-            <>
-              <h3 className="text-2xl font-medium mb-8 text-center">All customer reviews ({all.length})</h3>
-              <div className="grid md:grid-cols-3 gap-5">
-                {all.slice(0, visibleCount).map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
-              </div>
-              {visibleCount < all.length && (
-                <div className="flex justify-center mt-10">
-                  <Button type="button" variant="secondary" onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}>
-                    Show more reviews
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </Container>
     </section>

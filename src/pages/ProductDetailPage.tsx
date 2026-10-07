@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { StarRating } from '@/components/ui/StarRating';
 import { RichText } from '@/components/common/RichText';
 import { ReviewCard } from '@/components/common/ReviewCard';
+import { MasonryGrid } from '@/components/common/MasonryGrid';
 import { ReviewForm } from '@/components/common/ReviewForm';
 import { DeliveryInfo } from '@/components/common/DeliveryInfo';
 import { SeoHead } from '@/components/common/SeoHead';
@@ -255,11 +256,11 @@ export default function ProductDetailPage() {
             </div>
 
             {productReviews.length > 0 ? (
-              <div className="grid md:grid-cols-2 gap-5">
+              <MasonryGrid maxColumns={2}>
                 {productReviews.map((review) => (
                   <ReviewCard key={review.id} review={review} />
                 ))}
-              </div>
+              </MasonryGrid>
             ) : (
               <p className="text-[var(--color-ink-soft)]">Be the first to review this product.</p>
             )}

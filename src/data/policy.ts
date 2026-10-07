@@ -61,7 +61,7 @@ export const policyPages: Record<PolicyPageKey, PolicyPageContent> = {
       <h2>Orders and payment</h2>
       <p>All orders are subject to acceptance and availability. Prices are shown in GBP and include VAT where applicable. We reserve the right to correct pricing errors before dispatch.</p>
       <h2>Delivery and returns</h2>
-      <p>We offer free UK delivery on orders over £30 and accept returns within 30 days of delivery for unused items in their original packaging.</p>
+      <p>We offer free UK delivery on orders over £70 and accept returns within 30 days of delivery for unused items in their original packaging.</p>
       <h2>Limitation of liability</h2>
       <p>To the extent permitted by law, Icebrim Ltd's liability for any claim relating to your use of the site or products is limited to the amount paid for the relevant order.</p>
       <h2>Governing law</h2>
@@ -76,7 +76,7 @@ export const policyPages: Record<PolicyPageKey, PolicyPageContent> = {
       <h2>Returns</h2>
       <p>You can return unused items in their original packaging within 30 days of delivery. To start a return, contact us via our Contact page with your order number and the item(s) you'd like to return.</p>
       <h2>Refunds</h2>
-      <p>Once we receive and inspect your return, we'll notify you of the outcome. Approved refunds are issued to your original payment method within 5-10 business days.</p>
+      <p>Once we receive and inspect your return, we'll notify you of the outcome. Approved refunds are issued to your original payment method within 5–10 business days.</p>
       <h2>Damaged or faulty items</h2>
       <p>If your order arrives damaged or faulty, please contact us within 48 hours of delivery with photos of the issue so we can arrange a replacement or refund at no extra cost to you.</p>
       <h2>Non-returnable items</h2>

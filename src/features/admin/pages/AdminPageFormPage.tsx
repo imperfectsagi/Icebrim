@@ -106,7 +106,7 @@ export function AdminPageFormPage() {
             />
           </FormRow>
           {isSystem ? (
-            <FormRow label="URL" hint="This is a built-in page -- its URL is fixed and can't be changed.">
+            <FormRow label="URL" hint="This is a built-in page — its URL is fixed and can't be changed.">
               <div className="form-input flex items-center gap-2 bg-[var(--color-surface)] text-[var(--color-ink-soft)]">
                 <Lock size={13} aria-hidden="true" />
                 icebrim.com/{watch('slug')}

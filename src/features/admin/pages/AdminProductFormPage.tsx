@@ -165,7 +165,7 @@ export function AdminProductFormPage() {
             <FormRow
               label="Stock"
               error={errors.stock?.message}
-              hint="Stock is held (temporarily reduced) as soon as a customer starts checkout, before payment completes, to prevent overselling. If a checkout doesn't complete, stock is released back automatically within 20 minutes. Editing this field always sets an absolute value -- it does not affect any in-progress checkouts."
+              hint="Stock is held (temporarily reduced) as soon as a customer starts checkout, before payment completes, to prevent overselling. If a checkout doesn't complete, stock is released back automatically within 20 minutes. Editing this field always sets an absolute value — it does not affect any in-progress checkouts."
             >
               <input type="number" className="form-input" {...register('stock', { valueAsNumber: true })} />
             </FormRow>

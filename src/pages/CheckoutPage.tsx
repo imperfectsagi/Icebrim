@@ -315,7 +315,7 @@ export default function CheckoutPage() {
             {!appliedCoupon && promoCoupon && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-[var(--color-coral)] bg-[var(--color-coral-tint)] px-3 py-2.5 text-sm">
                 <span className="text-[var(--color-coral-deep)]">
-                  <span className="font-mono font-semibold">{promoCoupon.code}</span> -- {formatDiscount(promoCoupon)}
+                  <span className="font-mono font-semibold">{promoCoupon.code}</span> — {formatDiscount(promoCoupon)}
                   {promoCoupon.minOrderSubtotal ? ` on orders over ${formatPrice(promoCoupon.minOrderSubtotal, currency)}` : ''}
                 </span>
                 <button

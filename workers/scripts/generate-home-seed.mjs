@@ -19,7 +19,7 @@ const homeContent = {
     primaryCta: { label: 'Shop the Cooling Cap', href: '/products/cooling-relief-cap' },
     secondaryCta: { label: 'How it works', href: '#how-it-works' },
     image: { src: '/assets/products/cooling-relief-cap/hero-lifestyle.jpg', alt: 'A woman relaxing at home wearing the Icebrim Cooling Relief Cap' },
-    trustBadges: ['Free UK delivery over £30', '30-day returns', '5-year lifespan'],
+    trustBadges: ['Free UK delivery over £70', '30-day returns', '5-year lifespan'],
   },
   howItWorks: {
     visible: true,
